@@ -1,0 +1,10 @@
+packages:
+  - "apps/*"
+  - "packages/*"
+allowBuilds:
+  # esbuild: binario nativo de vite/vitest — necesario y confiable
+  esbuild: true
+  # mongodb-memory-server: descarga el binario de mongod para tests de integración
+  mongodb-memory-server: true
+  # unrs-resolver: resolver nativo de eslint-plugin-import-x
+  unrs-resolver: true

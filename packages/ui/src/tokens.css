@@ -1,0 +1,97 @@
+@import "tailwindcss";
+
+@custom-variant dark (&:where(.dark, .dark *));
+
+/* ====== Tokens semánticos (estética cálida — docs/04-design-system.md) ======
+   ÚNICA fuente de color del producto. Las apps importan este archivo y solo
+   usan clases semánticas (bg-surface, text-ink...). Cambiar acá repinta todo. */
+:root {
+  --c-base: #F7F8F3;
+  --c-surface: #FFFFFF;
+  --c-raised: #ECEEE5;
+  --c-ink: #1E241A;
+  --c-ink-muted: #5C6356;
+  --c-ink-dim: #8B9281;
+  --c-line: #E2E5DA;
+  --c-accent: #FF5722;
+  --c-accent-strong: #E64A19;
+  --c-accent-soft: #FFE0D6;
+  --c-on-accent: #3E0F00;
+  --c-danger: #C9403F;
+  --c-ok: #2F9E6F;
+  --c-warn: #A16207;
+  --c-warn-soft: #FCEFC7;
+  --c-info: #2B7A8C;
+  --c-info-soft: #D7EDF2;
+}
+
+.dark {
+  --c-base: #191B16;
+  --c-surface: #24271F;
+  --c-raised: #2F332A;
+  --c-ink: #E8EBE1;
+  --c-ink-muted: #A0A697;
+  --c-ink-dim: #71776A;
+  --c-line: #353930;
+  --c-accent: #FF6E4A;
+  --c-accent-strong: #FF8A6E;
+  --c-accent-soft: #3D1508;
+  --c-on-accent: #FFE0D6;
+  --c-danger: #E5615F;
+  --c-ok: #56C08A;
+  --c-warn: #E5B15C;
+  --c-warn-soft: #3A2E12;
+  --c-info: #6FC3D6;
+  --c-info-soft: #10333C;
+}
+
+@theme inline {
+  --color-base: var(--c-base);
+  --color-surface: var(--c-surface);
+  --color-raised: var(--c-raised);
+  --color-ink: var(--c-ink);
+  --color-ink-muted: var(--c-ink-muted);
+  --color-ink-dim: var(--c-ink-dim);
+  --color-line: var(--c-line);
+  --color-accent: var(--c-accent);
+  --color-accent-strong: var(--c-accent-strong);
+  --color-accent-soft: var(--c-accent-soft);
+  --color-on-accent: var(--c-on-accent);
+  --color-danger: var(--c-danger);
+  --color-ok: var(--c-ok);
+  --color-warn: var(--c-warn);
+  --color-warn-soft: var(--c-warn-soft);
+  --color-info: var(--c-info);
+  --color-info-soft: var(--c-info-soft);
+}
+
+@theme {
+  --font-display: "Iowan Old Style", "Palatino Linotype", Palatino, Georgia,
+    "Times New Roman", serif;
+  --font-sans: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto,
+    "Helvetica Neue", Arial, sans-serif;
+  --radius-card: 1rem;
+  --radius-control: 0.75rem;
+}
+
+@layer base {
+  html {
+    color-scheme: light;
+  }
+  .dark {
+    color-scheme: dark;
+  }
+  body {
+    background-color: var(--c-base);
+    color: var(--c-ink);
+    font-family: var(--font-sans);
+    -webkit-font-smoothing: antialiased;
+    -webkit-tap-highlight-color: transparent;
+  }
+  ::selection {
+    background-color: var(--c-accent-soft);
+  }
+  input[type="date"] {
+    min-height: 2.75rem; /* iOS achica los date inputs */
+  }
+}

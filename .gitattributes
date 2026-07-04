@@ -1,0 +1,5 @@
+# Normalizar a LF en el repo (evita ruido CRLF de Windows)
+* text=auto eol=lf
+*.png binary
+*.webp binary
+*.ico binary

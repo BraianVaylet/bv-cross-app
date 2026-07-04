@@ -1,0 +1,4 @@
+{
+  "extends": "@bv/config/tsconfig.vite.json",
+  "include": ["src", "playground"]
+}

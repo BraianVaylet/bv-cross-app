@@ -1,0 +1,3 @@
+@import '../src/tokens.css';
+/* Tailwind v4: escanear también las fuentes del package (fuera del root del playground) */
+@source '../src';

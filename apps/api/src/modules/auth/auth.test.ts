@@ -50,7 +50,7 @@ async function registerUser(email: string): Promise<{ verifyToken: string }> {
   return { verifyToken: send?.data.token ?? '' };
 }
 
-beforeAll(startTestDb);
+beforeAll(startTestDb, 120_000); // primera corrida descarga el binario de mongod
 afterAll(stopTestDb);
 
 beforeEach(() => {

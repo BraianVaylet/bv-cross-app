@@ -15,7 +15,7 @@ import {
 const config = testConfig();
 const USER_ID = new ObjectId().toHexString();
 
-beforeAll(startTestDb);
+beforeAll(startTestDb, 120_000); // primera corrida descarga el binario de mongod
 afterAll(stopTestDb);
 
 describe('access token (JWT HS256)', () => {

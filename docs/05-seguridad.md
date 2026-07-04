@@ -4,7 +4,7 @@
 
 ## 1. Autenticación y cuentas
 
-- **Passwords**: scrypt (`node:crypto`, parámetros v1: N=2^15, r=8, p=1), comparación en tiempo constante, timing uniforme aunque el email no exista (mitiga user enumeration). Política: mínimo 8 caracteres; sin reglas de composición arbitrarias; chequeo contra top-10k contraseñas comunes.
+- **Passwords**: scrypt (`node:crypto`); hashes nuevos con N=2^15, r=8, p=1. El formato almacenado `scrypt$N$r$p$salt_b64$hash_b64` es autodescriptivo: `verifyPassword` lee N/r/p del hash, así los hashes migrados de v1 (que usaba N=2^14) siguen verificando sin re-hash. Comparación en tiempo constante, timing uniforme aunque el email no exista (mitiga user enumeration). Política: mínimo 8 caracteres; sin reglas de composición arbitrarias; chequeo contra top-10k contraseñas comunes.
 - **Tokens**: access JWT HS256 15 min (secret ≥ 256 bits) · refresh opaco 256 bits **rotativo con detección de reuso por familia** (reuso ⇒ revocar familia completa) · en DB solo hashes (SHA-256) de refresh/email tokens — un dump de DB no sirve para impersonar.
 - **Cookies** (refresh): `httpOnly; Secure; SameSite=Lax; Domain=.<apex>; Path=/api/v1/auth`. El access token vive **solo en memoria** del FE (nunca localStorage/sessionStorage).
 - **Verificación y reset por email**: tokens de un solo uso, 30 min de vida, invalidados al usarse; reset invalida **todas** las sesiones del usuario (herencia v1). Respuestas de forgot-password idénticas exista o no el email.

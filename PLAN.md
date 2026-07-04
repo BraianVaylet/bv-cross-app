@@ -14,8 +14,8 @@
 
 | Fase | Nombre | Tareas | Specs | Estado |
 |---|---|---|---|---|
-| F0 | Fundaciones (monorepo + estándares) | 6 | [docs/tasks/F0.md](docs/tasks/F0.md) | 🔨 4/6 (F0-05 en curso · F0-06 espera decisión de dominio) |
-| F1 | API core: auth + organizaciones | 12 | [docs/tasks/F1.md](docs/tasks/F1.md) | 🔨 2/12 |
+| F0 | Fundaciones (monorepo + estándares) | 6 | [docs/tasks/F0.md](docs/tasks/F0.md) | 🔨 5/6 (F0-06 espera decisión de dominio — humano) |
+| F1 | API core: auth + organizaciones | 12 | [docs/tasks/F1.md](docs/tasks/F1.md) | 🔨 3/12 |
 | F2 | Migración de bv-cross (cargas) | 8 | [docs/tasks/F2.md](docs/tasks/F2.md) | — |
 | F3 | CRM: gestión del gimnasio | 12 | [docs/tasks/F3.md](docs/tasks/F3.md) | — |
 | F4 | bv-cross-schedule: reservas | 8 | [docs/tasks/F4.md](docs/tasks/F4.md) | — |
@@ -30,14 +30,14 @@
 - [x] **F0-02** ⛔ 🟡 Opus — `@bv/contracts` núcleo: primitivas Zod, enums del dominio, catálogo de errores, matriz de permisos
 - [x] **F0-03** ⛔ 🟡 Opus — `@bv/ui`: extraer design system de v1 (tokens + componentes + Modal/Toast nuevos + playground)
 - [x] **F0-04** 🟢 Sonnet — CI del monorepo (turbo + cache + `audit:deps` con osv-scanner) · *verde en `main` (repo bv-cross-app)*
-- [ ] **F0-05** 🟢 Haiku — Gobierno del repo (branch protection, Dependabot, template de PR) · *archivos listos; branch protection requiere repo GitHub*
+- [x] **F0-05** 🟢 Haiku — Gobierno del repo (branch protection, Dependabot, template de PR) · *branch protection activa y probada (push directo rechazado)*
 - [ ] **F0-06** 🟢 humano — Decidir y comprar dominio (apex único — restricción SSO)
 
 ## F1 — API core: auth + organizaciones · [specs](docs/tasks/F1.md)
 
 - [x] **F1-01** ⛔ 🟡 Opus — Scaffolding `apps/api`: config Zod fail-fast, middlewares de seguridad, errores, pino, Dockerfile turbo-prune *(docker build queda para verificar con Docker disponible)*
 - [x] **F1-02** ⛔ 🟡 Opus — Capa Mongo: cliente, colecciones tipadas, TODOS los índices, harness de tests con replica set
-- [ ] **F1-03** ⛔ 🟡 Opus — `lib/crypto` (scrypt v1 + tokens) y `lib/email` (Resend + consola + templates)
+- [x] **F1-03** ⛔ 🟡 Opus — `lib/crypto` (scrypt v1 + tokens) y `lib/email` (Resend + consola + templates)
 - [ ] **F1-04** ⛔ 🔴 Fable — Auth: register + verify + login (JWT 15 min + refresh rotativo en cookie)
 - [ ] **F1-05** ⛔ 🔴 Fable — Auth: refresh con detección de reuso + logout + forgot/reset + change-password
 - [ ] **F1-06** ⛔ 🔴 Opus — Middlewares `requireAuth`/`tenantGuard`/`requireRole` + rate limiting en Mongo

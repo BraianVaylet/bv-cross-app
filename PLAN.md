@@ -14,7 +14,7 @@
 
 | Fase | Nombre | Tareas | Specs | Estado |
 |---|---|---|---|---|
-| F0 | Fundaciones (monorepo + estándares) | 6 | [docs/tasks/F0.md](docs/tasks/F0.md) | 🔨 3/6 (F0-04/05 esperan repo GitHub · F0-06 espera decisión de dominio) |
+| F0 | Fundaciones (monorepo + estándares) | 6 | [docs/tasks/F0.md](docs/tasks/F0.md) | 🔨 4/6 (F0-05 en curso · F0-06 espera decisión de dominio) |
 | F1 | API core: auth + organizaciones | 12 | [docs/tasks/F1.md](docs/tasks/F1.md) | 🔨 2/12 |
 | F2 | Migración de bv-cross (cargas) | 8 | [docs/tasks/F2.md](docs/tasks/F2.md) | — |
 | F3 | CRM: gestión del gimnasio | 12 | [docs/tasks/F3.md](docs/tasks/F3.md) | — |
@@ -29,7 +29,7 @@
 - [x] **F0-01** ⛔ 🟡 Opus — Inicializar el monorepo (pnpm + Turborepo + `.npmrc`) + `@bv/config` (ESLint/Prettier/tsconfig)
 - [x] **F0-02** ⛔ 🟡 Opus — `@bv/contracts` núcleo: primitivas Zod, enums del dominio, catálogo de errores, matriz de permisos
 - [x] **F0-03** ⛔ 🟡 Opus — `@bv/ui`: extraer design system de v1 (tokens + componentes + Modal/Toast nuevos + playground)
-- [ ] **F0-04** 🟢 Sonnet — CI del monorepo (turbo + cache + `audit:deps` con osv-scanner) · *workflow listo; falta repo GitHub para verlo verde*
+- [x] **F0-04** 🟢 Sonnet — CI del monorepo (turbo + cache + `audit:deps` con osv-scanner) · *verde en `main` (repo bv-cross-app)*
 - [ ] **F0-05** 🟢 Haiku — Gobierno del repo (branch protection, Dependabot, template de PR) · *archivos listos; branch protection requiere repo GitHub*
 - [ ] **F0-06** 🟢 humano — Decidir y comprar dominio (apex único — restricción SSO)
 

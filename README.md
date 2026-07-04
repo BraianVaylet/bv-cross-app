@@ -1,5 +1,7 @@
 # BV Cross — Plataforma de gestión para centros de CrossFit
 
+[![CI](https://github.com/BraianVaylet/bv-cross-app/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/BraianVaylet/bv-cross-app/actions/workflows/ci.yml)
+
 > **Monorepo del producto**: acá viven el código de todas las apps y paquetes compartidos, la documentación funcional/técnica y el plan de acción (ver [Arquitectura](docs/02-arquitectura.md)).
 
 ## ¿Qué es?

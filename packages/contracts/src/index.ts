@@ -1,3 +1,4 @@
+export * from './auth.js';
 export * from './core.js';
 export * from './enums.js';
 export * from './errors.js';

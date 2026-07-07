@@ -15,7 +15,7 @@
 | Fase | Nombre | Tareas | Specs | Estado |
 |---|---|---|---|---|
 | F0 | Fundaciones (monorepo + estándares) | 6 | [docs/tasks/F0.md](docs/tasks/F0.md) | 🔨 5/6 (F0-06 espera decisión de dominio — humano) |
-| F1 | API core: auth + organizaciones | 12 | [docs/tasks/F1.md](docs/tasks/F1.md) | 🔨 4/12 |
+| F1 | API core: auth + organizaciones | 12 | [docs/tasks/F1.md](docs/tasks/F1.md) | 🔨 5/12 |
 | F2 | Migración de bv-cross (cargas) | 8 | [docs/tasks/F2.md](docs/tasks/F2.md) | — |
 | F3 | CRM: gestión del gimnasio | 12 | [docs/tasks/F3.md](docs/tasks/F3.md) | — |
 | F4 | bv-cross-schedule: reservas | 8 | [docs/tasks/F4.md](docs/tasks/F4.md) | — |
@@ -39,7 +39,7 @@
 - [x] **F1-02** ⛔ 🟡 Opus — Capa Mongo: cliente, colecciones tipadas, TODOS los índices, harness de tests con replica set
 - [x] **F1-03** ⛔ 🟡 Opus — `lib/crypto` (scrypt v1 + tokens) y `lib/email` (Resend + consola + templates)
 - [x] **F1-04** ⛔ 🔴 Fable — Auth: register + verify + login (JWT 15 min + refresh rotativo en cookie)
-- [ ] **F1-05** ⛔ 🔴 Fable — Auth: refresh con detección de reuso + logout + forgot/reset + change-password
+- [x] **F1-05** ⛔ 🔴 Fable — Auth: refresh con detección de reuso + logout + forgot/reset + change-password
 - [ ] **F1-06** ⛔ 🔴 Opus — Middlewares `requireAuth`/`tenantGuard`/`requireRole` + rate limiting en Mongo
 - [ ] **F1-07** ⛔ 🟡 Opus — Módulo `orgs`: crear org, settings, joinCode regenerable, join con vinculación de invitados, `/me`
 - [ ] **F1-08** 🟡 Opus — Módulo `members`: CRUD de clientes del CRM (pre-carga, adminNotes, disable/enable)

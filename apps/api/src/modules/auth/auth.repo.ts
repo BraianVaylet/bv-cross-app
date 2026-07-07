@@ -36,6 +36,10 @@ export async function insertUser(input: {
   return doc;
 }
 
+export async function updatePasswordHash(userId: ObjectId, passwordHash: string): Promise<void> {
+  await users().updateOne({ _id: userId }, { $set: { passwordHash, updatedAt: new Date() } });
+}
+
 export async function markEmailVerified(userId: ObjectId): Promise<void> {
   const now = new Date();
   await users().updateOne(

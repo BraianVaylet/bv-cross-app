@@ -1,10 +1,14 @@
 import { describe, expect, it } from 'vitest';
 import {
+  changePasswordBody,
+  forgotPasswordBody,
   loginBody,
   loginResponseDto,
   membershipSummaryDto,
+  refreshResponseDto,
   registerBody,
   resendVerificationBody,
+  resetPasswordBody,
   userDto,
   verifyEmailBody,
 } from './auth.js';
@@ -48,6 +52,22 @@ describe('verifyEmailBody / resendVerificationBody / loginBody', () => {
     expect(resendVerificationBody.parse({ email: 'A@B.co' }).email).toBe('a@b.co');
     expect(() => loginBody.parse({ email: 'a@b.co' })).toThrow();
     expect(loginBody.parse({ email: 'a@b.co', password: 'p' }).password).toBe('p');
+  });
+});
+
+describe('bodies de F1-05', () => {
+  it('valida forma, normaliza email y rechaza extras', () => {
+    expect(forgotPasswordBody.parse({ email: ' A@B.co ' }).email).toBe('a@b.co');
+    expect(() => forgotPasswordBody.parse({ email: 'a@b.co', extra: 1 })).toThrow();
+    expect(resetPasswordBody.parse({ token: 't', newPassword: 'p' }).token).toBe('t');
+    expect(() => resetPasswordBody.parse({ token: '', newPassword: 'p' })).toThrow();
+    expect(() => resetPasswordBody.parse({ token: 't' })).toThrow();
+    expect(
+      changePasswordBody.parse({ currentPassword: 'a', newPassword: 'b' }).newPassword,
+    ).toBe('b');
+    expect(() => changePasswordBody.parse({ newPassword: 'b' })).toThrow();
+    expect(refreshResponseDto.parse({ accessToken: 'jwt' }).accessToken).toBe('jwt');
+    expect(() => refreshResponseDto.parse({ accessToken: 'jwt', user: {} })).toThrow();
   });
 });
 

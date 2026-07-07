@@ -4,7 +4,7 @@ import type {
   RegisterBody,
   UserDto,
 } from '@bv/contracts';
-import { MongoServerError } from 'mongodb';
+import { MongoServerError, ObjectId } from 'mongodb';
 import type { Config } from '../../config.js';
 import type { UserDoc } from '../../db/types.js';
 import {
@@ -22,15 +22,27 @@ import {
   consumeEmailToken,
   findEmailTokenByHash,
   findUserByEmail,
+  findUserById,
   insertEmailToken,
   insertUser,
   invalidateEmailTokens,
   listMembershipSummaries,
   markEmailVerified,
+  updatePasswordHash,
 } from './auth.repo.js';
-import { issuePair, type RefreshMeta, type TokenPair } from './token-service.js';
+import {
+  findRefreshTokenByHash,
+  issueAccessToken,
+  issuePair,
+  revokeAllUserFamilies,
+  revokeFamily,
+  rotateRefreshToken,
+  type RefreshMeta,
+  type TokenPair,
+} from './token-service.js';
 
 const VERIFY_TOKEN_TTL_MIN = 30;
+const RESET_TOKEN_TTL_MIN = 30;
 
 export interface AuthDeps {
   config: Config;
@@ -145,7 +157,119 @@ export function createAuthService(deps: AuthDeps) {
     };
   }
 
-  return { register, verifyEmail, resendVerification, login };
+  /**
+   * Rotación con detección de reuso (docs/05-seguridad.md §1). Un token ya
+   * rotado (revokedAt) presentado de nuevo = posible robo: cae la familia
+   * entera y queda log warn como evento de seguridad.
+   */
+  async function refresh(token: string, meta: RefreshMeta = {}): Promise<TokenPair> {
+    const invalid = new DomainError('TOKEN_INVALID', 'La sesión ya no es válida.');
+    const doc = await findRefreshTokenByHash(hashToken(token));
+    if (!doc || doc.expiresAt <= new Date()) throw invalid;
+    if (doc.revokedAt !== undefined) {
+      await revokeFamily(doc.familyId);
+      logger.warn(
+        {
+          userId: doc.userId.toHexString(),
+          familyId: doc.familyId.toHexString(),
+          ip: meta.ip,
+          userAgent: meta.userAgent,
+        },
+        'refresh token reuse detected - family revoked',
+      );
+      throw invalid;
+    }
+    const [accessToken, rotated] = await Promise.all([
+      issueAccessToken(doc.userId.toHexString(), config),
+      rotateRefreshToken(doc, config, meta),
+    ]);
+    return { accessToken, refreshToken: rotated.token, refreshExpiresAt: rotated.expiresAt };
+  }
+
+  /** Idempotente: sin cookie o token desconocido también resuelve (204). */
+  async function logout(token: string | undefined): Promise<void> {
+    if (!token) return;
+    const doc = await findRefreshTokenByHash(hashToken(token));
+    if (doc) await revokeFamily(doc.familyId);
+  }
+
+  /** Siempre resuelve (202): no filtra si el email existe. */
+  async function forgotPassword(email: string): Promise<void> {
+    const user = await findUserByEmail(email);
+    if (!user) return;
+    await invalidateEmailTokens(user._id, 'reset');
+    const token = generateToken();
+    await insertEmailToken({
+      userId: user._id,
+      purpose: 'reset',
+      tokenHash: hashToken(token),
+      expiresAt: new Date(Date.now() + RESET_TOKEN_TTL_MIN * 60 * 1000),
+    });
+    try {
+      await emailProvider.send({
+        to: user.email,
+        template: 'reset-password',
+        data: { name: user.name, appUrl, token },
+      });
+    } catch (err) {
+      logger.warn({ err, userId: user._id.toHexString() }, 'reset email failed');
+    }
+  }
+
+  async function resetPassword(token: string, newPassword: string): Promise<void> {
+    // La fortaleza se valida ANTES de tocar el token: un fallo acá no lo quema.
+    if (isWeakPassword(newPassword)) {
+      throw new DomainError(
+        'WEAK_PASSWORD',
+        'La contraseña debe tener al menos 8 caracteres y no ser una contraseña común.',
+      );
+    }
+    const invalid = new DomainError('TOKEN_INVALID', 'El enlace no es válido o ya venció.');
+    const doc = await findEmailTokenByHash(hashToken(token));
+    if (!doc || doc.purpose !== 'reset' || doc.expiresAt <= new Date()) throw invalid;
+    const consumed = await consumeEmailToken(doc._id);
+    if (!consumed) throw invalid;
+    await updatePasswordHash(doc.userId, await hashPassword(newPassword));
+    // Probó control del email: vale como verificación si estaba pendiente.
+    await markEmailVerified(doc.userId);
+    // Posible cuenta comprometida: caen TODAS las sesiones (herencia v1).
+    await revokeAllUserFamilies(doc.userId);
+  }
+
+  async function changePassword(
+    userId: string,
+    body: { currentPassword: string; newPassword: string },
+    currentRefreshToken: string | undefined,
+  ): Promise<void> {
+    if (isWeakPassword(body.newPassword)) {
+      throw new DomainError(
+        'WEAK_PASSWORD',
+        'La contraseña debe tener al menos 8 caracteres y no ser una contraseña común.',
+      );
+    }
+    const user = await findUserById(new ObjectId(userId));
+    if (!user || !(await verifyPassword(body.currentPassword, user.passwordHash))) {
+      throw new DomainError('INVALID_CREDENTIALS', 'La contraseña actual no es correcta.');
+    }
+    await updatePasswordHash(user._id, await hashPassword(body.newPassword));
+    // UX: la sesión que cambió la password sigue viva; el resto muere.
+    const current = currentRefreshToken
+      ? await findRefreshTokenByHash(hashToken(currentRefreshToken))
+      : null;
+    await revokeAllUserFamilies(user._id, current?.familyId);
+  }
+
+  return {
+    register,
+    verifyEmail,
+    resendVerification,
+    login,
+    refresh,
+    logout,
+    forgotPassword,
+    resetPassword,
+    changePassword,
+  };
 }
 
 export type AuthService = ReturnType<typeof createAuthService>;

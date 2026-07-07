@@ -53,6 +53,18 @@ export const loginResponseDto = z
   })
   .strict();
 
+export const forgotPasswordBody = z.object({ email }).strict();
+
+export const resetPasswordBody = z
+  .object({ token: z.string().min(1).max(128), newPassword: password })
+  .strict();
+
+export const changePasswordBody = z
+  .object({ currentPassword: password, newPassword: password })
+  .strict();
+
+export const refreshResponseDto = z.object({ accessToken: z.string() }).strict();
+
 export type RegisterBody = z.infer<typeof registerBody>;
 export type VerifyEmailBody = z.infer<typeof verifyEmailBody>;
 export type ResendVerificationBody = z.infer<typeof resendVerificationBody>;
@@ -60,3 +72,7 @@ export type LoginBody = z.infer<typeof loginBody>;
 export type UserDto = z.infer<typeof userDto>;
 export type MembershipSummaryDto = z.infer<typeof membershipSummaryDto>;
 export type LoginResponseDto = z.infer<typeof loginResponseDto>;
+export type ForgotPasswordBody = z.infer<typeof forgotPasswordBody>;
+export type ResetPasswordBody = z.infer<typeof resetPasswordBody>;
+export type ChangePasswordBody = z.infer<typeof changePasswordBody>;
+export type RefreshResponseDto = z.infer<typeof refreshResponseDto>;

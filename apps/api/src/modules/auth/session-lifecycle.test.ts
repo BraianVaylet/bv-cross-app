@@ -104,13 +104,12 @@ describe('refresh: rotación con detección de reuso', () => {
       expect(res.status).toBe(200);
       current = cookieValue(res);
     }
-    const docs = await refreshTokens()
-      .find({ tokenHash: { $exists: true } })
+    const last = await refreshTokens().findOne({ tokenHash: hashToken(current) });
+    expect(last).not.toBeNull();
+    const mine = await refreshTokens()
+      .find({ familyId: last?.familyId })
       .toArray();
-    const mine = docs.filter((d) => d.familyId.equals(docs.at(-1)?.familyId ?? d.familyId));
-    const families = new Set(mine.map((d) => d.familyId.toHexString()));
-    expect(families.size).toBe(1);
-    expect(mine).toHaveLength(6); // login + 5 rotaciones
+    expect(mine).toHaveLength(6); // login + 5 rotaciones, familia única
     const alive = mine.filter((d) => d.revokedAt === undefined);
     expect(alive).toHaveLength(1);
     expect(alive[0]?.tokenHash).toBe(hashToken(current));

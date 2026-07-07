@@ -14,6 +14,7 @@ import type { Config } from '../../config.js';
 import { DomainError } from '../../lib/errors.js';
 import { parseBody } from '../../lib/http.js';
 import { requireAuth } from '../../middleware/auth.js';
+import { rateLimit } from '../../middleware/rate-limit.js';
 import type { AuthService } from './auth.service.js';
 import { REFRESH_COOKIE_NAME, REFRESH_COOKIE_PATH, type RefreshMeta } from './token-service.js';
 
@@ -40,7 +41,20 @@ export function authRoutes(config: Config, service: AuthService) {
     });
   };
 
-  router.post('/register', async (c) => {
+  // Límites por endpoint (docs/tasks/F1.md F1-06)
+  const HOUR = 3600;
+  const QUARTER = 900;
+  const limits = {
+    register: rateLimit(config, { scope: 'register:ip', keyBy: 'ip', limit: 5, windowSec: HOUR }),
+    loginIp: rateLimit(config, { scope: 'login:ip', keyBy: 'ip', limit: 10, windowSec: QUARTER }),
+    loginEmail: rateLimit(config, { scope: 'login:email', keyBy: 'body-email', limit: 5, windowSec: QUARTER }),
+    emailIp: rateLimit(config, { scope: 'email:ip', keyBy: 'ip', limit: 10, windowSec: HOUR }),
+    forgotEmail: rateLimit(config, { scope: 'forgot:email', keyBy: 'body-email', limit: 3, windowSec: HOUR }),
+    resendEmail: rateLimit(config, { scope: 'resend:email', keyBy: 'body-email', limit: 3, windowSec: HOUR }),
+    refresh: rateLimit(config, { scope: 'refresh:ip', keyBy: 'ip', limit: 60, windowSec: HOUR }),
+  };
+
+  router.post('/register', limits.register, async (c) => {
     const body = await parseBody(c, registerBody);
     const user = await service.register(body);
     return c.json({ user }, 201);
@@ -52,13 +66,13 @@ export function authRoutes(config: Config, service: AuthService) {
     return c.body(null, 204);
   });
 
-  router.post('/resend-verification', async (c) => {
+  router.post('/resend-verification', limits.emailIp, limits.resendEmail, async (c) => {
     const body = await parseBody(c, resendVerificationBody);
     await service.resendVerification(body.email);
     return c.body(null, 202);
   });
 
-  router.post('/login', async (c) => {
+  router.post('/login', limits.loginIp, limits.loginEmail, async (c) => {
     const body = await parseBody(c, loginBody);
     const result = await service.login(body, refreshMeta(c));
     setRefreshCookie(c, result.refreshToken);
@@ -69,7 +83,7 @@ export function authRoutes(config: Config, service: AuthService) {
     });
   });
 
-  router.post('/refresh', async (c) => {
+  router.post('/refresh', limits.refresh, async (c) => {
     const token = getCookie(c, REFRESH_COOKIE_NAME);
     if (!token) throw new DomainError('TOKEN_INVALID', 'La sesión ya no es válida.');
     const pair = await service.refresh(token, refreshMeta(c));
@@ -83,7 +97,7 @@ export function authRoutes(config: Config, service: AuthService) {
     return c.body(null, 204);
   });
 
-  router.post('/forgot-password', async (c) => {
+  router.post('/forgot-password', limits.emailIp, limits.forgotEmail, async (c) => {
     const body = await parseBody(c, forgotPasswordBody);
     await service.forgotPassword(body.email);
     return c.body(null, 202);

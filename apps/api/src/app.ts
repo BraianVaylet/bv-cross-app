@@ -1,3 +1,4 @@
+import type { Role } from '@bv/contracts';
 import { Hono } from 'hono';
 import { bodyLimit } from 'hono/body-limit';
 import { cors } from 'hono/cors';
@@ -13,7 +14,7 @@ import { createAuthService } from './modules/auth/auth.service.js';
 export interface AppVariables {
   requestId: string;
   userId: string;
-  org: { orgId: string; role: string; membershipId: string };
+  org: { orgId: string; role: Role; membershipId: string };
 }
 
 export type AppEnv = { Variables: AppVariables };

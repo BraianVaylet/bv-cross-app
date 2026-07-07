@@ -10,6 +10,8 @@ import { errorBody, onError } from './lib/errors.js';
 import { requestLogger } from './lib/logger.js';
 import { authRoutes } from './modules/auth/auth.routes.js';
 import { createAuthService } from './modules/auth/auth.service.js';
+import { meRoutes } from './modules/me/me.routes.js';
+import { orgsRoutes } from './modules/orgs/orgs.routes.js';
 
 export interface AppVariables {
   requestId: string;
@@ -115,7 +117,10 @@ export function createApp(config: Config, deps: AppDeps = {}) {
     );
   });
 
-  app.route('/api/v1/auth', authRoutes(config, createAuthService({ config, emailProvider })));
+  const authService = createAuthService({ config, emailProvider });
+  app.route('/api/v1/auth', authRoutes(config, authService));
+  app.route('/api/v1/me', meRoutes(config, authService));
+  app.route('/api/v1/orgs', orgsRoutes(config));
 
   app.all('/api/*', (c) => c.json(errorBody('NOT_FOUND', 'Ruta inexistente.'), 404));
 

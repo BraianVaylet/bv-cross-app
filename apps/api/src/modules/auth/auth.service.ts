@@ -54,7 +54,7 @@ export interface LoginResult extends LoginResponseDto {
   refreshExpiresAt: Date;
 }
 
-function toUserDto(user: UserDoc): UserDto {
+export function toUserDto(user: UserDoc): UserDto {
   return {
     id: user._id.toHexString(),
     email: user.email,
@@ -259,6 +259,18 @@ export function createAuthService(deps: AuthDeps) {
     await revokeAllUserFamilies(user._id, current?.familyId);
   }
 
+  /** GET /me (F1-07). */
+  async function getMe(userId: string): Promise<UserDto> {
+    const user = await findUserById(new ObjectId(userId));
+    if (!user) throw new DomainError('TOKEN_INVALID', 'Autenticación inválida.');
+    return toUserDto(user);
+  }
+
+  /** GET /me/memberships (F1-07): selector de org, solo active/invited. */
+  function myMemberships(userId: string) {
+    return listMembershipSummaries(new ObjectId(userId));
+  }
+
   return {
     register,
     verifyEmail,
@@ -269,6 +281,8 @@ export function createAuthService(deps: AuthDeps) {
     forgotPassword,
     resetPassword,
     changePassword,
+    getMe,
+    myMemberships,
   };
 }
 

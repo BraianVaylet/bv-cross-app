@@ -73,7 +73,14 @@ describe('bodies de F1-05', () => {
 
 describe('userDto / membershipSummaryDto / loginResponseDto', () => {
   const user = { id: ID, email: 'a@b.co', name: 'Ana', emailVerified: true };
-  const membership = { id: ID, orgId: ID, orgName: 'Box', role: 'athlete', status: 'active' };
+  const membership = {
+    id: ID,
+    orgId: ID,
+    orgName: 'Box',
+    orgSlug: 'box',
+    role: 'athlete',
+    status: 'active',
+  };
 
   it('acepta formas válidas', () => {
     expect(userDto.parse(user)).toEqual(user);

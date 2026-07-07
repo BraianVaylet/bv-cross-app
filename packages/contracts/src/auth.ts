@@ -34,12 +34,13 @@ export const userDto = z
   })
   .strict();
 
-/** Resumen de membresía para el selector de org (login y /me). */
+/** Resumen de membresía para el selector de org (login y /me/memberships). */
 export const membershipSummaryDto = z
   .object({
     id: objectIdString,
     orgId: objectIdString,
     orgName: z.string(),
+    orgSlug: z.string(),
     role,
     status: membershipStatus,
   })

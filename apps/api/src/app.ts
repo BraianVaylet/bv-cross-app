@@ -1,19 +1,31 @@
+import type { Role } from '@bv/contracts';
 import { Hono } from 'hono';
 import { bodyLimit } from 'hono/body-limit';
 import { cors } from 'hono/cors';
 import { secureHeaders } from 'hono/secure-headers';
 import type { Config } from './config.js';
 import { pingMongo } from './db/client.js';
+import { createEmailProvider, type EmailProvider } from './lib/email.js';
 import { errorBody, onError } from './lib/errors.js';
 import { requestLogger } from './lib/logger.js';
+import { authRoutes } from './modules/auth/auth.routes.js';
+import { createAuthService } from './modules/auth/auth.service.js';
+import { meRoutes } from './modules/me/me.routes.js';
+import { membersRoutes } from './modules/members/members.routes.js';
+import { orgsRoutes } from './modules/orgs/orgs.routes.js';
 
 export interface AppVariables {
   requestId: string;
   userId: string;
-  org: { orgId: string; role: string; membershipId: string };
+  org: { orgId: string; role: Role; membershipId: string };
 }
 
 export type AppEnv = { Variables: AppVariables };
+
+/** Dependencias inyectables (tests pasan mocks; producción usa los defaults). */
+export interface AppDeps {
+  emailProvider?: EmailProvider;
+}
 
 const MAX_BODY_BYTES = 16 * 1024;
 
@@ -23,8 +35,9 @@ const DEV_ORIGIN = /^https?:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/;
  * Instancia de la API (docs/02-arquitectura.md §9). Recibe la config para ser
  * testeable sin tocar process.env. El estado (Mongo) se inyecta en index.ts.
  */
-export function createApp(config: Config) {
+export function createApp(config: Config, deps: AppDeps = {}) {
   const app = new Hono<AppEnv>();
+  const emailProvider = deps.emailProvider ?? createEmailProvider(config);
 
   app.use(requestLogger());
 
@@ -105,8 +118,11 @@ export function createApp(config: Config) {
     );
   });
 
-  // Los módulos de dominio se montan acá (F1-04+):
-  // app.route('/api/v1/auth', authRoutes(config, deps));
+  const authService = createAuthService({ config, emailProvider });
+  app.route('/api/v1/auth', authRoutes(config, authService));
+  app.route('/api/v1/me', meRoutes(config, authService));
+  app.route('/api/v1/orgs', orgsRoutes(config));
+  app.route('/api/v1/members', membersRoutes(config));
 
   app.all('/api/*', (c) => c.json(errorBody('NOT_FOUND', 'Ruta inexistente.'), 404));
 

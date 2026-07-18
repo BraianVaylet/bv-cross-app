@@ -15,7 +15,7 @@
 | Fase | Nombre | Tareas | Specs | Estado |
 |---|---|---|---|---|
 | F0 | Fundaciones (monorepo + estándares) | 6 | [docs/tasks/F0.md](docs/tasks/F0.md) | 🔨 5/6 (F0-06 espera decisión de dominio — humano) |
-| F1 | API core: auth + organizaciones | 12 | [docs/tasks/F1.md](docs/tasks/F1.md) | 🔨 3/12 |
+| F1 | API core: auth + organizaciones | 12 | [docs/tasks/F1.md](docs/tasks/F1.md) | 🔨 9/12 |
 | F2 | Migración de bv-cross (cargas) | 8 | [docs/tasks/F2.md](docs/tasks/F2.md) | — |
 | F3 | CRM: gestión del gimnasio | 12 | [docs/tasks/F3.md](docs/tasks/F3.md) | — |
 | F4 | bv-cross-schedule: reservas | 8 | [docs/tasks/F4.md](docs/tasks/F4.md) | — |
@@ -38,12 +38,12 @@
 - [x] **F1-01** ⛔ 🟡 Opus — Scaffolding `apps/api`: config Zod fail-fast, middlewares de seguridad, errores, pino, Dockerfile turbo-prune *(docker build queda para verificar con Docker disponible)*
 - [x] **F1-02** ⛔ 🟡 Opus — Capa Mongo: cliente, colecciones tipadas, TODOS los índices, harness de tests con replica set
 - [x] **F1-03** ⛔ 🟡 Opus — `lib/crypto` (scrypt v1 + tokens) y `lib/email` (Resend + consola + templates)
-- [ ] **F1-04** ⛔ 🔴 Fable — Auth: register + verify + login (JWT 15 min + refresh rotativo en cookie)
-- [ ] **F1-05** ⛔ 🔴 Fable — Auth: refresh con detección de reuso + logout + forgot/reset + change-password
-- [ ] **F1-06** ⛔ 🔴 Opus — Middlewares `requireAuth`/`tenantGuard`/`requireRole` + rate limiting en Mongo
-- [ ] **F1-07** ⛔ 🟡 Opus — Módulo `orgs`: crear org, settings, joinCode regenerable, join con vinculación de invitados, `/me`
-- [ ] **F1-08** 🟡 Opus — Módulo `members`: CRUD de clientes del CRM (pre-carga, adminNotes, disable/enable)
-- [ ] **F1-09** ⛔ 🔴 Fable — Suite de aislamiento multi-tenant (tabla de políticas autovalidante + IDOR cross-org)
+- [x] **F1-04** ⛔ 🔴 Fable — Auth: register + verify + login (JWT 15 min + refresh rotativo en cookie)
+- [x] **F1-05** ⛔ 🔴 Fable — Auth: refresh con detección de reuso + logout + forgot/reset + change-password
+- [x] **F1-06** ⛔ 🔴 Opus — Middlewares `requireAuth`/`tenantGuard`/`requireRole` + rate limiting en Mongo
+- [x] **F1-07** ⛔ 🟡 Opus — Módulo `orgs`: crear org, settings, joinCode regenerable, join con vinculación de invitados, `/me`
+- [x] **F1-08** 🟡 Opus — Módulo `members`: CRUD de clientes del CRM (pre-carga, adminNotes, disable/enable)
+- [x] **F1-09** ⛔ 🔴 Fable — Suite de aislamiento multi-tenant (tabla de políticas autovalidante + IDOR cross-org)
 - [ ] **F1-10** 🟡 Sonnet — Scheduler de jobs + `expire-packs` idempotente
 - [ ] **F1-11** 🟢 Sonnet — Seed de desarrollo (org demo completa; se extiende en cada fase)
 - [ ] **F1-12** 🟢 Sonnet — Deploy de la API (Railway + Atlas M0 + verificación por HTTP real)

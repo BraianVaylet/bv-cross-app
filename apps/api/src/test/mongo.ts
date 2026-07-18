@@ -9,7 +9,8 @@ let replSet: MongoMemoryReplSet | null = null;
  * Harness de integración (docs/08-testing.md §1): Mongo real en memoria como
  * replica set de 1 nodo — habilita transacciones. DB con nombre aleatorio por
  * suite para aislar. Uso:
- *   beforeAll(startTestDb); afterAll(stopTestDb);
+ *   beforeAll(startTestDb, 120_000); afterAll(stopTestDb);
+ * (timeout explícito: en CI el arranque del replica set supera los 10 s del default)
  */
 export async function startTestDb(): Promise<void> {
   replSet = await MongoMemoryReplSet.create({ replSet: { count: 1 } });

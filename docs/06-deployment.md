@@ -26,7 +26,7 @@
 
 **API (`apps/api`)**
 1. New Project → Deploy from GitHub → monorepo. Config: Dockerfile path `apps/api/Dockerfile` (contexto de build = raíz del repo; el Dockerfile usa `turbo prune --scope=@bv/api` para copiar solo lo necesario). **Watch paths**: `apps/api/**`, `packages/**`, `pnpm-lock.yaml`.
-2. Variables: `NODE_ENV=production`, `MONGODB_URI` (Atlas SRV), `JWT_SECRET` (256 bits: `openssl rand -base64 48`), `RESEND_API_KEY`, `APP_ORIGINS=https://app.<apex>,https://agenda.<apex>,https://crm.<apex>`, `COOKIE_DOMAIN=.<apex>`, `TRUST_PROXY=true`.
+2. Variables: `NODE_ENV=production`, `MONGODB_URI` (Atlas SRV), `JWT_SECRET` (256 bits: `openssl rand -base64 48`), `RESEND_API_KEY`, `APP_ORIGINS=https://app.<apex>,https://agenda.<apex>,https://crm.<apex>`, `COOKIE_DOMAIN=.<apex>`, `TRUST_PROXY=true`. Opcional: `ENABLE_JOBS=false` en réplicas que no deban correr jobs (default `true`, DEC-09).
 3. Settings → Networking → custom domain `api.<apex>` (CNAME).
 4. Healthcheck path `/healthz`. Restart policy on-failure.
 

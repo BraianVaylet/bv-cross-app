@@ -27,6 +27,8 @@ const configSchema = z.object({
     .optional()
     .or(z.literal('').transform(() => undefined)),
   TRUST_PROXY: boolFromString.default('false'),
+  // Permite réplicas sin jobs a futuro (DEC-09): solo una instancia los corre.
+  ENABLE_JOBS: boolFromString.default('true'),
 });
 
 export type Config = z.infer<typeof configSchema> & {

@@ -16,7 +16,7 @@
 |---|---|---|---|---|
 | F0 | Fundaciones (monorepo + estándares) | 6 | [docs/tasks/F0.md](docs/tasks/F0.md) | 🔨 5/6 (F0-06 espera decisión de dominio — humano) |
 | F1 | API core: auth + organizaciones | 12 | [docs/tasks/F1.md](docs/tasks/F1.md) | 🔨 9/12 |
-| F2 | Migración de bv-cross (cargas) | 8 | [docs/tasks/F2.md](docs/tasks/F2.md) | — |
+| F2 | Migración de bv-cross (cargas) | 8 | [docs/tasks/F2.md](docs/tasks/F2.md) | 🔨 1/8 |
 | F3 | CRM: gestión del gimnasio | 12 | [docs/tasks/F3.md](docs/tasks/F3.md) | — |
 | F4 | bv-cross-schedule: reservas | 8 | [docs/tasks/F4.md](docs/tasks/F4.md) | — |
 | F5 | Estadísticas + hardening | 7 | [docs/tasks/F5.md](docs/tasks/F5.md) | — |
@@ -50,7 +50,7 @@
 
 ## F2 — Migración de bv-cross · [specs](docs/tasks/F2.md)
 
-- [ ] **F2-01** ⛔ 🟡 Opus — Módulo `exercises`: catálogo de org + personales (una colección, dos alcances, TYPE_LOCKED)
+- [x] **F2-01** ⛔ 🟡 Opus — Módulo `exercises`: catálogo de org + personales (una colección, dos alcances, TYPE_LOCKED) · *seed de ejercicios pendiente hasta mergear F1-11 (#20)*
 - [ ] **F2-02** ⛔ 🟡 Opus — Módulo `entries`: registros kg/reps (XOR), RM vigente, vista admin solo-catálogo
 - [ ] **F2-03** ⛔ 🔴 Opus — FE: migración al monorepo + auth nueva (token en memoria, refresh single-flight, selector de org)
 - [ ] **F2-04** 🟢 Sonnet — Pantalla de join a organización (código + mapeo de errores)

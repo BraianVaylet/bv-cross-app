@@ -17,7 +17,7 @@
 export type Access = 'public' | 'user' | 'member' | 'admin' | 'owner';
 
 /** Clave del catálogo de factories (test/factories.ts) para el test de IDOR. */
-export type ResourceKind = 'membership';
+export type ResourceKind = 'membership' | 'exercise';
 
 export interface RoutePolicy {
   method: string;
@@ -58,4 +58,24 @@ export const ROUTE_POLICIES: RoutePolicy[] = [
   { method: 'POST', path: '/api/v1/members', access: 'admin' },
   { method: 'GET', path: '/api/v1/members/:id', access: 'admin', resource: 'membership' },
   { method: 'PATCH', path: '/api/v1/members/:id', access: 'admin', resource: 'membership' },
+
+  // exercises — catálogo org + personales (F2-01); :id org-scoped → IDOR
+  { method: 'GET', path: '/api/v1/exercises', access: 'member' },
+  {
+    method: 'POST',
+    path: '/api/v1/exercises',
+    access: 'member',
+    sampleBody: { name: 'Back Squat', type: 'weight' },
+  },
+  { method: 'GET', path: '/api/v1/exercises/:id', access: 'member', resource: 'exercise' },
+  {
+    method: 'PATCH',
+    path: '/api/v1/exercises/:id',
+    access: 'member',
+    resource: 'exercise',
+    sampleBody: { name: 'Renombrado' },
+  },
+  { method: 'POST', path: '/api/v1/exercises/:id/archive', access: 'admin', resource: 'exercise' },
+  { method: 'POST', path: '/api/v1/exercises/:id/restore', access: 'admin', resource: 'exercise' },
+  { method: 'DELETE', path: '/api/v1/exercises/:id', access: 'member', resource: 'exercise' },
 ];

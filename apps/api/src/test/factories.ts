@@ -1,7 +1,7 @@
 import type { Role } from '@bv/contracts';
 import { ObjectId } from 'mongodb';
 import type { Config } from '../config.js';
-import { memberships, organizations, users } from '../db/collections.js';
+import { exercises, memberships, organizations, users } from '../db/collections.js';
 import type { MembershipStatus } from '@bv/contracts';
 import { issueAccessToken } from '../modules/auth/token-service.js';
 import type { ResourceKind } from '../route-policies.js';
@@ -93,6 +93,22 @@ export const RESOURCE_FACTORIES: Record<
       status: 'invited',
       profile: { displayName: 'Recurso Ajeno' },
       invitedEmail: `idor-${id.toHexString()}@test.com`,
+      createdAt: now,
+      updatedAt: now,
+    });
+    return id.toHexString();
+  },
+  exercise: async (orgId) => {
+    // Ejercicio de catálogo de la org ajena (F2-01).
+    const now = new Date();
+    const id = new ObjectId();
+    await exercises().insertOne({
+      _id: id,
+      scope: 'org',
+      orgId,
+      ownerUserId: null,
+      name: `Ajeno ${id.toHexString().slice(-6)}`,
+      type: 'weight',
       createdAt: now,
       updatedAt: now,
     });

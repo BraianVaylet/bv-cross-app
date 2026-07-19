@@ -1,7 +1,7 @@
 import type { Role } from '@bv/contracts';
 import { ObjectId } from 'mongodb';
 import type { Config } from '../config.js';
-import { exercises, memberships, organizations, users } from '../db/collections.js';
+import { exercises, memberships, organizations, rmEntries, users } from '../db/collections.js';
 import type { MembershipStatus } from '@bv/contracts';
 import { issueAccessToken } from '../modules/auth/token-service.js';
 import type { ResourceKind } from '../route-policies.js';
@@ -111,6 +111,20 @@ export const RESOURCE_FACTORIES: Record<
       type: 'weight',
       createdAt: now,
       updatedAt: now,
+    });
+    return id.toHexString();
+  },
+  entry: async (orgId) => {
+    // Entry de un usuario ajeno sobre catálogo de la org ajena (F2-02).
+    const id = new ObjectId();
+    await rmEntries().insertOne({
+      _id: id,
+      exerciseId: new ObjectId(),
+      userId: new ObjectId(),
+      orgId,
+      kg: 100,
+      date: '2026-01-01',
+      createdAt: new Date(),
     });
     return id.toHexString();
   },

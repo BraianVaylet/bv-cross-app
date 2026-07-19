@@ -10,6 +10,7 @@ import { errorBody, onError } from './lib/errors.js';
 import { requestLogger } from './lib/logger.js';
 import { authRoutes } from './modules/auth/auth.routes.js';
 import { createAuthService } from './modules/auth/auth.service.js';
+import { entriesRoutes } from './modules/entries/entries.routes.js';
 import { exercisesRoutes } from './modules/exercises/exercises.routes.js';
 import { meRoutes } from './modules/me/me.routes.js';
 import { membersRoutes } from './modules/members/members.routes.js';
@@ -125,6 +126,7 @@ export function createApp(config: Config, deps: AppDeps = {}) {
   app.route('/api/v1/orgs', orgsRoutes(config));
   app.route('/api/v1/members', membersRoutes(config));
   app.route('/api/v1/exercises', exercisesRoutes(config));
+  app.route('/api/v1/entries', entriesRoutes(config));
 
   app.all('/api/*', (c) => c.json(errorBody('NOT_FOUND', 'Ruta inexistente.'), 404));
 

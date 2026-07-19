@@ -17,7 +17,7 @@
 export type Access = 'public' | 'user' | 'member' | 'admin' | 'owner';
 
 /** Clave del catálogo de factories (test/factories.ts) para el test de IDOR. */
-export type ResourceKind = 'membership' | 'exercise';
+export type ResourceKind = 'membership' | 'exercise' | 'entry';
 
 export interface RoutePolicy {
   method: string;
@@ -78,4 +78,20 @@ export const ROUTE_POLICIES: RoutePolicy[] = [
   { method: 'POST', path: '/api/v1/exercises/:id/archive', access: 'admin', resource: 'exercise' },
   { method: 'POST', path: '/api/v1/exercises/:id/restore', access: 'admin', resource: 'exercise' },
   { method: 'DELETE', path: '/api/v1/exercises/:id', access: 'member', resource: 'exercise' },
+
+  // entries — registros de carga propios (F2-02); vista CRM bajo /members
+  { method: 'GET', path: '/api/v1/entries', access: 'member' },
+  {
+    method: 'POST',
+    path: '/api/v1/entries',
+    access: 'member',
+    sampleBody: { exerciseId: '0123456789abcdef01234567', kg: 100, date: '2026-01-01' },
+  },
+  { method: 'DELETE', path: '/api/v1/entries/:id', access: 'member', resource: 'entry' },
+  {
+    method: 'GET',
+    path: '/api/v1/members/:id/entries',
+    access: 'admin',
+    resource: 'membership',
+  },
 ];

@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-label="BV Cross">
+  <title>BV Cross</title>
+  <rect width="64" height="64" rx="14" fill="#191B16" />
+  <path d="M21 32 L43 32" fill="none" stroke="#F7F8F3" stroke-width="4" stroke-linecap="round" />
+  <path d="M21 19.5 L21 44.5 M43 19.5 L43 44.5" fill="none" stroke="#c96442" stroke-width="5" stroke-linecap="round" />
+  <path d="M13.5 26 L13.5 38 M50.5 26 L50.5 38" fill="none" stroke="#c96442" stroke-width="5" stroke-linecap="round" />
+  <circle cx="32" cy="32" r="3" fill="#2F9E6F" />
+</svg>

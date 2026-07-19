@@ -1,0 +1,8 @@
+@import '@bv/ui/tokens.css';
+
+/* Estilos propios mínimos (todo lo demás vive en @bv/ui). */
+@layer base {
+  input[type='date'] {
+    min-height: 2.75rem; /* iOS achica los date inputs */
+  }
+}

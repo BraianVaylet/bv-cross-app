@@ -24,7 +24,7 @@ jobs:
           cache: pnpm
 
       # Cache de turbo: acelera lint/typecheck/test/build entre corridas
-      - uses: actions/cache@v4
+      - uses: actions/cache@v6
         with:
           path: .turbo
           key: turbo-${{ runner.os }}-${{ github.sha }}
@@ -32,7 +32,7 @@ jobs:
 
       # Cache del binario de mongod (mongodb-memory-server): evita re-bajarlo
       # cada corrida y, junto al prewarm, mata la carrera de descarga.
-      - uses: actions/cache@v4
+      - uses: actions/cache@v6
         with:
           path: ~/.cache/mongodb-binaries
           key: mongodb-binaries-${{ runner.os }}

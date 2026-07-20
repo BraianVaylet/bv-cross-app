@@ -29,6 +29,7 @@ import {
   emptyEntryForm,
   type EntryFormValues,
 } from '../components/EntryFields';
+import { currentRm } from '../lib/currentRm';
 import { exerciseImage } from '../lib/exerciseImages';
 import { fmtDate, fmtKg, percentWeight, roundTo, todayISO } from '../lib/format';
 import { useLocalStorage } from '../lib/useLocalStorage';
@@ -102,9 +103,9 @@ export function ExerciseDetail() {
         api.entries.list(id),
       ]);
       setExercise(ex);
-      setEntries(page.items); // orden RN-22: la primera es la vigente
+      setEntries(page.items);
       setBaseId((prev) =>
-        prev !== null && page.items.some((e) => e.id === prev) ? prev : (page.items[0]?.id ?? null),
+        prev !== null && page.items.some((e) => e.id === prev) ? prev : (currentRm(page.items)?.id ?? null),
       );
     } catch (err) {
       if (err instanceof ApiError && err.status === 404) setNotFound(true);
@@ -118,8 +119,9 @@ export function ExerciseDetail() {
   }, [id, load]);
 
   const list = useMemo(() => entries ?? [], [entries]);
-  const base = useMemo(() => list.find((e) => e.id === baseId) ?? list[0] ?? null, [list, baseId]);
-  const isCurrent = base !== null && list[0]?.id === base.id;
+  const currentEntry = useMemo(() => currentRm(list), [list]);
+  const base = useMemo(() => list.find((e) => e.id === baseId) ?? currentEntry, [list, baseId, currentEntry]);
+  const isCurrent = base !== null && currentEntry?.id === base.id;
   const isReps = exercise?.type === 'reps';
   const isPersonal = exercise?.scope === 'personal';
 
@@ -413,7 +415,7 @@ export function ExerciseDetail() {
             <h2 className="font-display text-lg font-semibold text-ink">Historial</h2>
             <span className="text-xs text-ink-dim">Tocá uno para usarlo de base</span>
           </div>
-          {list.map((e, index) => {
+          {list.map((e) => {
             const selected = base?.id === e.id;
             return (
               <button
@@ -429,7 +431,7 @@ export function ExerciseDetail() {
                 <div className="min-w-0 flex-1">
                   <p className="text-sm font-medium text-ink">
                     {fmtDate(e.date)}
-                    {index === 0 && (
+                    {e.id === currentEntry?.id && (
                       <span className="ml-2 rounded-full bg-raised px-2 py-0.5 text-[11px] font-medium text-ink-muted">
                         Vigente
                       </span>

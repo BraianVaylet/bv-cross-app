@@ -30,7 +30,18 @@ jobs:
           key: turbo-${{ runner.os }}-${{ github.sha }}
           restore-keys: turbo-${{ runner.os }}-
 
+      # Cache del binario de mongod (mongodb-memory-server): evita re-bajarlo
+      # cada corrida y, junto al prewarm, mata la carrera de descarga.
+      - uses: actions/cache@v4
+        with:
+          path: ~/.cache/mongodb-binaries
+          key: mongodb-binaries-${{ runner.os }}
+
       - run: pnpm install --frozen-lockfile
+
+      # Prewarm secuencial: baja el binario en un solo proceso antes de que
+      # las suites de test lo pidan en paralelo (ver scripts/prewarm-mongo.mts).
+      - run: pnpm --filter @bv/api exec tsx scripts/prewarm-mongo.mts
 
       - run: pnpm turbo run lint typecheck test build
 

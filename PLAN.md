@@ -15,7 +15,7 @@
 | Fase | Nombre | Tareas | Specs | Estado |
 |---|---|---|---|---|
 | F0 | Fundaciones (monorepo + estándares) | 6 | [docs/tasks/F0.md](docs/tasks/F0.md) | 🔨 5/6 (F0-06 espera decisión de dominio — humano) |
-| F1 | API core: auth + organizaciones | 12 | [docs/tasks/F1.md](docs/tasks/F1.md) | 🔨 10/12 |
+| F1 | API core: auth + organizaciones | 12 | [docs/tasks/F1.md](docs/tasks/F1.md) | 🔨 11/12 |
 | F2 | Migración de bv-cross (cargas) | 8 | [docs/tasks/F2.md](docs/tasks/F2.md) | — |
 | F3 | CRM: gestión del gimnasio | 12 | [docs/tasks/F3.md](docs/tasks/F3.md) | — |
 | F4 | bv-cross-schedule: reservas | 8 | [docs/tasks/F4.md](docs/tasks/F4.md) | — |
@@ -45,7 +45,7 @@
 - [x] **F1-08** 🟡 Opus — Módulo `members`: CRUD de clientes del CRM (pre-carga, adminNotes, disable/enable)
 - [x] **F1-09** ⛔ 🔴 Fable — Suite de aislamiento multi-tenant (tabla de políticas autovalidante + IDOR cross-org)
 - [x] **F1-10** 🟡 Sonnet — Scheduler de jobs + `expire-packs` idempotente
-- [ ] **F1-11** 🟢 Sonnet — Seed de desarrollo (org demo completa; se extiende en cada fase)
+- [x] **F1-11** 🟢 Sonnet — Seed de desarrollo (org demo completa; se extiende en cada fase)
 - [ ] **F1-12** 🟢 Sonnet — Deploy de la API (Railway + Atlas M0 + verificación por HTTP real)
 
 ## F2 — Migración de bv-cross · [specs](docs/tasks/F2.md)

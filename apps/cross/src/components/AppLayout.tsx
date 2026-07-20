@@ -49,9 +49,13 @@ export function AppLayout() {
           </Link>
           <div className="flex items-center gap-1">
             {activeOrg && (
-              <span className="mr-1 hidden truncate rounded-full bg-raised px-2.5 py-1 text-xs font-medium text-ink-muted sm:inline">
+              <Link
+                to="/select-org"
+                title="Cambiar o sumar gimnasio"
+                className="mr-1 hidden max-w-[10rem] truncate rounded-full bg-raised px-2.5 py-1 text-xs font-medium text-ink-muted transition-colors hover:text-ink sm:inline"
+              >
                 {activeOrg.orgName}
-              </span>
+              </Link>
             )}
             <ThemeToggle />
             <button

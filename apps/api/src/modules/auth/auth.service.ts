@@ -29,6 +29,7 @@ import {
   listMembershipSummaries,
   markEmailVerified,
   updatePasswordHash,
+  updateUserName,
 } from './auth.repo.js';
 import {
   findRefreshTokenByHash,
@@ -271,6 +272,15 @@ export function createAuthService(deps: AuthDeps) {
     return listMembershipSummaries(new ObjectId(userId));
   }
 
+  /** PATCH /me (F2-06): editar el nombre propio. */
+  async function updateName(userId: string, name: string): Promise<UserDto> {
+    const id = new ObjectId(userId);
+    await updateUserName(id, name);
+    const user = await findUserById(id);
+    if (!user) throw new DomainError('TOKEN_INVALID', 'Autenticación inválida.');
+    return toUserDto(user);
+  }
+
   return {
     register,
     verifyEmail,
@@ -283,6 +293,7 @@ export function createAuthService(deps: AuthDeps) {
     changePassword,
     getMe,
     myMemberships,
+    updateName,
   };
 }
 

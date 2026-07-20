@@ -1,4 +1,10 @@
-import { createMemberBody, membersQuery, objectIdString, updateMemberBody } from '@bv/contracts';
+import {
+  createMemberBody,
+  entriesQuery,
+  membersQuery,
+  objectIdString,
+  updateMemberBody,
+} from '@bv/contracts';
 import { Hono } from 'hono';
 import type { AppEnv } from '../../app.js';
 import type { Config } from '../../config.js';
@@ -7,6 +13,7 @@ import { parseBody, parseQuery } from '../../lib/http.js';
 import { requireAuth } from '../../middleware/auth.js';
 import { requireRole } from '../../middleware/roles.js';
 import { tenantGuard } from '../../middleware/tenant.js';
+import { listForMember } from '../entries/entries.service.js';
 import { create, get, list, update } from './members.service.js';
 
 /** Gestión de clientes: solo owner/admin (RN-04, acción members:manage). */
@@ -43,6 +50,12 @@ export function membersRoutes(config: Config) {
     const body = await parseBody(c, updateMemberBody);
     const member = await update(c.get('org'), memberId(c.req.param('id')), body);
     return c.json({ member });
+  });
+
+  // Vista CRM (F2-02, RN-20): entries del miembro solo sobre catálogo de la org.
+  router.get('/:id/entries', async (c) => {
+    const query = parseQuery(c, entriesQuery);
+    return c.json(await listForMember(c.get('org'), memberId(c.req.param('id')), query));
   });
 
   return router;

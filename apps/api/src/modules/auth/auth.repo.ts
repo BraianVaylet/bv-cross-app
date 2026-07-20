@@ -40,6 +40,10 @@ export async function updatePasswordHash(userId: ObjectId, passwordHash: string)
   await users().updateOne({ _id: userId }, { $set: { passwordHash, updatedAt: new Date() } });
 }
 
+export async function updateUserName(userId: ObjectId, name: string): Promise<void> {
+  await users().updateOne({ _id: userId }, { $set: { name, updatedAt: new Date() } });
+}
+
 export async function markEmailVerified(userId: ObjectId): Promise<void> {
   const now = new Date();
   await users().updateOne(

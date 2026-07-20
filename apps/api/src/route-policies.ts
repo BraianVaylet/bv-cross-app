@@ -17,7 +17,7 @@
 export type Access = 'public' | 'user' | 'member' | 'admin' | 'owner';
 
 /** Clave del catálogo de factories (test/factories.ts) para el test de IDOR. */
-export type ResourceKind = 'membership';
+export type ResourceKind = 'membership' | 'exercise' | 'entry';
 
 export interface RoutePolicy {
   method: string;
@@ -44,6 +44,7 @@ export const ROUTE_POLICIES: RoutePolicy[] = [
 
   // me — identidad, sin org
   { method: 'GET', path: '/api/v1/me', access: 'user' },
+  { method: 'PATCH', path: '/api/v1/me', access: 'user' },
   { method: 'GET', path: '/api/v1/me/memberships', access: 'user' },
 
   // orgs — crear/join necesitan identidad; current es org-scoped
@@ -58,4 +59,40 @@ export const ROUTE_POLICIES: RoutePolicy[] = [
   { method: 'POST', path: '/api/v1/members', access: 'admin' },
   { method: 'GET', path: '/api/v1/members/:id', access: 'admin', resource: 'membership' },
   { method: 'PATCH', path: '/api/v1/members/:id', access: 'admin', resource: 'membership' },
+
+  // exercises — catálogo org + personales (F2-01); :id org-scoped → IDOR
+  { method: 'GET', path: '/api/v1/exercises', access: 'member' },
+  {
+    method: 'POST',
+    path: '/api/v1/exercises',
+    access: 'member',
+    sampleBody: { name: 'Back Squat', type: 'weight' },
+  },
+  { method: 'GET', path: '/api/v1/exercises/:id', access: 'member', resource: 'exercise' },
+  {
+    method: 'PATCH',
+    path: '/api/v1/exercises/:id',
+    access: 'member',
+    resource: 'exercise',
+    sampleBody: { name: 'Renombrado' },
+  },
+  { method: 'POST', path: '/api/v1/exercises/:id/archive', access: 'admin', resource: 'exercise' },
+  { method: 'POST', path: '/api/v1/exercises/:id/restore', access: 'admin', resource: 'exercise' },
+  { method: 'DELETE', path: '/api/v1/exercises/:id', access: 'member', resource: 'exercise' },
+
+  // entries — registros de carga propios (F2-02); vista CRM bajo /members
+  { method: 'GET', path: '/api/v1/entries', access: 'member' },
+  {
+    method: 'POST',
+    path: '/api/v1/entries',
+    access: 'member',
+    sampleBody: { exerciseId: '0123456789abcdef01234567', kg: 100, date: '2026-01-01' },
+  },
+  { method: 'DELETE', path: '/api/v1/entries/:id', access: 'member', resource: 'entry' },
+  {
+    method: 'GET',
+    path: '/api/v1/members/:id/entries',
+    access: 'admin',
+    resource: 'membership',
+  },
 ];

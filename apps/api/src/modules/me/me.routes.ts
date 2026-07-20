@@ -1,6 +1,8 @@
+import { updateMeBody } from '@bv/contracts';
 import { Hono } from 'hono';
 import type { AppEnv } from '../../app.js';
 import type { Config } from '../../config.js';
+import { parseBody } from '../../lib/http.js';
 import { requireAuth } from '../../middleware/auth.js';
 import type { AuthService } from '../auth/auth.service.js';
 
@@ -12,6 +14,12 @@ export function meRoutes(config: Config, service: AuthService) {
 
   router.get('/', async (c) => {
     const user = await service.getMe(c.get('userId'));
+    return c.json({ user });
+  });
+
+  router.patch('/', async (c) => {
+    const body = await parseBody(c, updateMeBody);
+    const user = await service.updateName(c.get('userId'), body.name);
     return c.json({ user });
   });
 

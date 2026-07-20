@@ -1,0 +1,69 @@
+import { Logo, MoonIcon, SunIcon } from '@bv/ui';
+import { useState } from 'react';
+import { Link, Outlet } from 'react-router-dom';
+import { useAuth } from '../auth/AuthContext';
+
+const headerBtn =
+  'flex h-10 w-10 items-center justify-center rounded-xl text-ink-muted transition-colors hover:bg-raised hover:text-ink';
+
+function ThemeToggle() {
+  const [dark, setDark] = useState(() => document.documentElement.classList.contains('dark'));
+  const toggle = () => {
+    const next = !dark;
+    document.documentElement.classList.toggle('dark', next);
+    try {
+      localStorage.setItem('bv-theme', next ? 'dark' : 'light');
+    } catch {
+      /* storage no disponible */
+    }
+    setDark(next);
+  };
+  return (
+    <button type="button" onClick={toggle} aria-label="Cambiar tema" className={headerBtn}>
+      {dark ? <SunIcon className="h-5 w-5" /> : <MoonIcon className="h-5 w-5" />}
+    </button>
+  );
+}
+
+/** Shell de la app: marca + org activa + tema + salir. */
+export function AppLayout() {
+  const { user, memberships, activeOrgId } = useAuth();
+  const activeOrg = memberships.find((m) => m.orgId === activeOrgId);
+  const initial = (user?.name.trim()[0] ?? '?').toUpperCase();
+
+  return (
+    <div className="min-h-dvh">
+      <main className="mx-auto w-full max-w-md px-4 pb-28 pt-5">
+        <header className="mb-5 flex items-center justify-between gap-3">
+          <Link
+            to="/"
+            className="flex items-center gap-2 rounded-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/50"
+          >
+            <Logo />
+            <span className="font-display text-lg font-semibold text-ink">BV Cross</span>
+          </Link>
+          <div className="flex items-center gap-1">
+            {activeOrg && (
+              <Link
+                to="/select-org"
+                title="Cambiar o sumar gimnasio"
+                className="mr-1 hidden max-w-[10rem] truncate rounded-full bg-raised px-2.5 py-1 text-xs font-medium text-ink-muted transition-colors hover:text-ink sm:inline"
+              >
+                {activeOrg.orgName}
+              </Link>
+            )}
+            <ThemeToggle />
+            <Link
+              to="/account"
+              aria-label="Tu cuenta"
+              className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-accent-soft text-sm font-semibold text-accent transition-transform hover:scale-105"
+            >
+              {initial}
+            </Link>
+          </div>
+        </header>
+        <Outlet />
+      </main>
+    </div>
+  );
+}

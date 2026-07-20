@@ -24,6 +24,8 @@ interface AuthContextValue {
   logout: () => Promise<void>;
   selectOrg: (orgId: string) => void;
   refreshMemberships: () => Promise<MembershipSummaryDto[]>;
+  /** Refresca el usuario en memoria tras editar el perfil (F2-06). */
+  updateUser: (user: UserDto) => void;
 }
 
 const AuthCtx = createContext<AuthContextValue | null>(null);
@@ -131,9 +133,23 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return mine;
   }, [applyOrgResolution]);
 
+  const updateUser = useCallback((next: UserDto) => {
+    setUser(next);
+  }, []);
+
   const value = useMemo(
-    () => ({ status, user, memberships, activeOrgId, login, logout, selectOrg, refreshMemberships }),
-    [status, user, memberships, activeOrgId, login, logout, selectOrg, refreshMemberships],
+    () => ({
+      status,
+      user,
+      memberships,
+      activeOrgId,
+      login,
+      logout,
+      selectOrg,
+      refreshMemberships,
+      updateUser,
+    }),
+    [status, user, memberships, activeOrgId, login, logout, selectOrg, refreshMemberships, updateUser],
   );
 
   return <AuthCtx.Provider value={value}>{children}</AuthCtx.Provider>;

@@ -44,6 +44,7 @@ export const ROUTE_POLICIES: RoutePolicy[] = [
 
   // me — identidad, sin org
   { method: 'GET', path: '/api/v1/me', access: 'user' },
+  { method: 'PATCH', path: '/api/v1/me', access: 'user' },
   { method: 'GET', path: '/api/v1/me/memberships', access: 'user' },
 
   // orgs — crear/join necesitan identidad; current es org-scoped

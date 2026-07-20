@@ -1,6 +1,6 @@
-import { Logo, LogoutIcon, MoonIcon, SunIcon } from '@bv/ui';
+import { Logo, MoonIcon, SunIcon } from '@bv/ui';
 import { useState } from 'react';
-import { Link, Outlet, useNavigate } from 'react-router-dom';
+import { Link, Outlet } from 'react-router-dom';
 import { useAuth } from '../auth/AuthContext';
 
 const headerBtn =
@@ -27,14 +27,9 @@ function ThemeToggle() {
 
 /** Shell de la app: marca + org activa + tema + salir. */
 export function AppLayout() {
-  const { logout, memberships, activeOrgId } = useAuth();
-  const navigate = useNavigate();
+  const { user, memberships, activeOrgId } = useAuth();
   const activeOrg = memberships.find((m) => m.orgId === activeOrgId);
-
-  const onLogout = async () => {
-    await logout();
-    navigate('/login', { replace: true });
-  };
+  const initial = (user?.name.trim()[0] ?? '?').toUpperCase();
 
   return (
     <div className="min-h-dvh">
@@ -58,14 +53,13 @@ export function AppLayout() {
               </Link>
             )}
             <ThemeToggle />
-            <button
-              type="button"
-              onClick={() => void onLogout()}
-              aria-label="Cerrar sesión"
-              className={headerBtn}
+            <Link
+              to="/account"
+              aria-label="Tu cuenta"
+              className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-accent-soft text-sm font-semibold text-accent transition-transform hover:scale-105"
             >
-              <LogoutIcon className="h-5 w-5" />
-            </button>
+              {initial}
+            </Link>
           </div>
         </header>
         <Outlet />

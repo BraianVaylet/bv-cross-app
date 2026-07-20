@@ -64,6 +64,9 @@ export const changePasswordBody = z
   .object({ currentPassword: password, newPassword: password })
   .strict();
 
+/** PATCH /me: por ahora solo el nombre (F2-06). */
+export const updateMeBody = z.object({ name: z.string().trim().min(1).max(80) }).strict();
+
 export const refreshResponseDto = z.object({ accessToken: z.string() }).strict();
 
 export type RegisterBody = z.infer<typeof registerBody>;
@@ -76,4 +79,5 @@ export type LoginResponseDto = z.infer<typeof loginResponseDto>;
 export type ForgotPasswordBody = z.infer<typeof forgotPasswordBody>;
 export type ResetPasswordBody = z.infer<typeof resetPasswordBody>;
 export type ChangePasswordBody = z.infer<typeof changePasswordBody>;
+export type UpdateMeBody = z.infer<typeof updateMeBody>;
 export type RefreshResponseDto = z.infer<typeof refreshResponseDto>;

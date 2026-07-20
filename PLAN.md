@@ -16,7 +16,7 @@
 |---|---|---|---|---|
 | F0 | Fundaciones (monorepo + estándares) | 6 | [docs/tasks/F0.md](docs/tasks/F0.md) | 🔨 5/6 (F0-06 espera decisión de dominio — humano) |
 | F1 | API core: auth + organizaciones | 12 | [docs/tasks/F1.md](docs/tasks/F1.md) | 🔨 9/12 |
-| F2 | Migración de bv-cross (cargas) | 8 | [docs/tasks/F2.md](docs/tasks/F2.md) | 🔨 5/8 |
+| F2 | Migración de bv-cross (cargas) | 8 | [docs/tasks/F2.md](docs/tasks/F2.md) | 🔨 6/8 |
 | F3 | CRM: gestión del gimnasio | 12 | [docs/tasks/F3.md](docs/tasks/F3.md) | — |
 | F4 | bv-cross-schedule: reservas | 8 | [docs/tasks/F4.md](docs/tasks/F4.md) | — |
 | F5 | Estadísticas + hardening | 7 | [docs/tasks/F5.md](docs/tasks/F5.md) | — |
@@ -55,7 +55,7 @@
 - [x] **F2-03** ⛔ 🔴 Opus — FE: migración al monorepo + auth nueva (token en memoria, refresh single-flight, selector de org)
 - [x] **F2-04** 🟢 Sonnet — Pantalla de join a organización (código + mapeo de errores)
 - [x] **F2-05** 🟡 Sonnet — Home: catálogo del gimnasio + "Mis ejercicios" (paridad v1 en detalle/calculadora)
-- [ ] **F2-06** 🟢 Sonnet — PWA (prompt de actualización) + pantalla de cuenta (nombre, password, cambiar de gym)
+- [x] **F2-06** 🟢 Sonnet — PWA (prompt de actualización) + pantalla de cuenta (nombre, password, cambiar de gym)
 - [ ] **F2-07** 🟢 Sonnet — Deploy de bv-cross v2 (estático + smoke e2e en producción)
 - [ ] **F2-08** 🟡 Opus — Script de migración v1→v2 (SQLite→Mongo, dry-run, verificación, rollback)
 

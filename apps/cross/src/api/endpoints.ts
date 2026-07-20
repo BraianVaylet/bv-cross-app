@@ -22,6 +22,11 @@ export const api = {
     login: (email: string, password: string) =>
       request<LoginResponseDto>('/api/v1/auth/login', { method: 'POST', body: { email, password } }),
     logout: () => request<undefined>('/api/v1/auth/logout', { method: 'POST' }),
+    changePassword: (currentPassword: string, newPassword: string) =>
+      request<{ changed: true }>('/api/v1/auth/change-password', {
+        method: 'POST',
+        body: { currentPassword, newPassword },
+      }),
     forgotPassword: (email: string) =>
       request<{ sent: true }>('/api/v1/auth/forgot-password', { method: 'POST', body: { email } }),
     resetPassword: (token: string, newPassword: string) =>
@@ -32,6 +37,8 @@ export const api = {
   },
   me: {
     get: () => request<{ user: UserDto }>('/api/v1/me'),
+    update: (name: string) =>
+      request<{ user: UserDto }>('/api/v1/me', { method: 'PATCH', body: { name } }),
     memberships: () => request<{ memberships: MembershipSummaryDto[] }>('/api/v1/me/memberships'),
   },
   orgs: {

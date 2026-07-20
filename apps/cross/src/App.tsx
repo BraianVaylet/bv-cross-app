@@ -3,6 +3,8 @@ import { BrowserRouter, Route, Routes } from 'react-router-dom';
 import { AuthProvider } from './auth/AuthContext';
 import { AuthedRoute, ProtectedRoute, PublicOnlyRoute } from './auth/guards';
 import { AppLayout } from './components/AppLayout';
+import { UpdatePrompt } from './components/UpdatePrompt';
+import { Account } from './pages/Account';
 import { EditExercise } from './pages/EditExercise';
 import { ExerciseDetail } from './pages/ExerciseDetail';
 import { Forgot } from './pages/Forgot';
@@ -21,6 +23,7 @@ export function App() {
     <BrowserRouter>
       <ToastProvider>
         <AuthProvider>
+          <UpdatePrompt />
           <Routes>
             <Route element={<PublicOnlyRoute />}>
               <Route path="/login" element={<Login />} />
@@ -43,6 +46,7 @@ export function App() {
                 <Route path="/exercises/new" element={<NewExercise />} />
                 <Route path="/exercises/:id" element={<ExerciseDetail />} />
                 <Route path="/exercises/:id/edit" element={<EditExercise />} />
+                <Route path="/account" element={<Account />} />
               </Route>
             </Route>
 

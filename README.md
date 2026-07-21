@@ -39,12 +39,16 @@ Leé los documentos en este orden si sos nuevo en el proyecto:
 | 06 | [Deployment](docs/06-deployment.md) | ¿Dónde y cómo se despliega? Escenarios comparados (Railway, Render, Fly, VPS, Vercel) |
 | 07 | [Escalabilidad](docs/07-escalabilidad.md) | ¿Qué hacemos cuando crezca? Etapas de escala con disparadores concretos |
 | 08 | [Testing](docs/08-testing.md) | ¿Cómo garantizamos calidad? Estrategia de tests por capa |
+| 09 | [**Bitácora**](docs/09-bitacora.md) | ¿Hasta dónde llegó la implementación? Estado real, decisiones tomadas al implementar y trampas conocidas |
 | — | [**PLAN.md**](PLAN.md) | **Tablero de ejecución**: estado de las 58 tareas, prioridades y dependencias |
 | — | [docs/tasks/F0..F6](docs/tasks/) | **Especificaciones por tarea**: objetivo, alcance, especificación técnica, casos de prueba y criterios de aceptación de cada una |
 
 ## Estado del proyecto
 
-- **Fase actual**: Fase 0 — Fundaciones (ver [PLAN.md](PLAN.md))
+- **Fase actual**: F3 — CRM. F0 5/6 · F1 11/12 · F2 7/8 · F3 3/12 (ver [PLAN.md](PLAN.md)).
+- La **API** tiene auth, multi-tenancy, organizaciones, clientes, ejercicios, registros de carga, agenda, packs y asignaciones. El **FE de cargas** (`apps/cross`) está migrado y funcionando contra ella.
+- Lo que falta para el go-live de F2 es **infraestructura**: crear Atlas + Railway (F1-12) desbloquea los deploys.
+- **Ojo**: parte del trabajo vive en PRs abiertos, no en `main`. El detalle de qué está dónde, con el orden de merge, está en la [bitácora](docs/09-bitacora.md).
 - **bv-cross v1**: en producción (Railway), un solo usuario, SQLite. Sigue operativa hasta que la v2 la reemplace.
 
 ## Convenciones de este repo

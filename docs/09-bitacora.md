@@ -6,21 +6,21 @@
 
 ## 1. Dónde está cada cosa
 
-`main` contiene F0 (5/6) y F1-01..09. **Todo lo demás vive en PRs abiertos** — si mirás solo `main` vas a ver un proyecto mucho más chico del que hay.
+`main` contiene F0 (5/6), **F1-01..11 y F2-01..06** — entró con el PR consolidado #29. Lo que sigue vive en **4 PRs abiertos**, todos con CI verde.
 
 ### PRs abiertos y orden de merge
 
 ```
-#29 (consolidado: F1-10/11 + F2-01..06 + fix de audit)
- ├─ #30  F2-08  migración v1→v2          (paralelo)
+main
+ ├─ #30  F2-08  migración v1→v2      (independiente)
  └─ #31  F3-01  schedule
      └─ #32  F3-02  packs
          └─ #33  F3-03  assignments
 ```
 
-**Mergear #29 primero.** Los demás salen de él; GitHub los retargetea a `main` solo al borrar cada rama. Todos con CI verde al momento de escribir esto.
+**#30 y #31 salen de `main` y se pueden mergear en cualquier orden.** #32 y #33 están encadenados: mergear #31 → #32 → #33, borrando cada rama para que GitHub retargetee la siguiente.
 
-> #29 reemplazó un stack previo de 8 PRs (#19-#28) que quedaron **cerrados sin mergear**: su contenido está íntegro en #29.
+> #29 reemplazó un stack previo de 8 PRs (#19-#28) que quedaron **cerrados sin mergear**: su contenido está íntegro en `main`.
 
 ## 2. Estado por fase
 
@@ -69,7 +69,7 @@ Las que no estaban en los docs de diseño y se resolvieron al implementar:
 
 ## 5. Cómo retomar
 
-1. **Mergear los PRs abiertos** en el orden de §1. Después de eso `main` refleja todo y PLAN.md queda al día.
+1. **Mergear los PRs abiertos** siguiendo §1. Después de eso `main` refleja todo y PLAN.md queda al día (los contadores de F3 viajan en esos PRs).
 2. Antes de tomar una tarea, leer su spec completa en `docs/tasks/F*.md` — son el contrato (objetivo, casos de prueba, criterios de aceptación).
 3. **Todo endpoint nuevo se registra en `apps/api/src/route-policies.ts`** en el mismo PR, con su factory en `src/test/factories.ts` si recibe un `:id`. Si no, el build falla (por diseño).
 4. Si el módulo introduce datos, extender el seed (`src/seed.ts`) en el mismo PR.

@@ -1,6 +1,6 @@
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { createApp } from './app.js';
-import { memberships, organizations, users } from './db/collections.js';
+import { classSessions, classTemplates, memberships, organizations, users } from './db/collections.js';
 import { DEMO_ORG_SLUG, DEMO_PASSWORD, runSeed } from './seed.js';
 import { testConfig } from './test/helpers.js';
 import { startTestDb, stopTestDb } from './test/mongo.js';
@@ -27,6 +27,26 @@ describe('seed de desarrollo (F1-11)', () => {
     expect(await memberships().countDocuments({ orgId: org?._id })).toBe(7);
     // la segunda corrida recrea la org: id nuevo, datos equivalentes
     expect(second.memberships).toBe(first.memberships);
+    expect(second.templates).toBe(first.templates);
+  });
+
+  it('la grilla lun–sáb queda materializada a 14 días (F3-01)', async () => {
+    const res = await runSeed('development');
+    const org = await organizations().findOne({ slug: DEMO_ORG_SLUG });
+
+    // 6 días × 5 turnos de crossfit + hyrox martes y jueves
+    expect(res.templates).toBe(32);
+    expect(await classTemplates().countDocuments({ orgId: org?._id })).toBe(32);
+
+    const sessions = await classSessions().find({ orgId: org?._id }).toArray();
+    expect(sessions.length).toBe(res.sessions);
+    expect(sessions.length).toBeGreaterThan(0);
+    // ninguna en el pasado y ninguna más allá del horizonte de la org
+    const now = Date.now();
+    const horizon = now + 15 * 86_400_000;
+    expect(sessions.every((s) => s.startsAt.getTime() > now)).toBe(true);
+    expect(sessions.every((s) => s.startsAt.getTime() < horizon)).toBe(true);
+    expect(sessions.every((s) => s.bookedCount === 0 && s.status === 'scheduled')).toBe(true);
   });
 
   it('login owner@demo.test OK; /me/memberships muestra la org; GET /members lista 7 fichas', async () => {

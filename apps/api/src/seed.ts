@@ -1,7 +1,9 @@
 import { ObjectId } from 'mongodb';
-import { memberships, organizations, users } from './db/collections.js';
+import { classSessions, classTemplates, memberships, organizations, users } from './db/collections.js';
+import type { ClassTemplateDoc } from './db/types.js';
 import { hashPassword } from './lib/crypto.js';
 import { logger } from './lib/logger.js';
+import { materializeTemplate } from './modules/schedule/schedule.service.js';
 
 /**
  * Seed de desarrollo (docs/tasks/F1.md F1-11): org demo completa para
@@ -28,7 +30,22 @@ export interface SeedSummary {
   orgId: string;
   users: number;
   memberships: number;
+  templates: number;
+  sessions: number;
 }
+
+/** Grilla del box (F3-01): lun–sáb de crossfit + hyrox martes y jueves. */
+const GRID: Array<{ weekday: number; startTime: string; discipline: string }> = [
+  ...[1, 2, 3, 4, 5, 6].flatMap((weekday) =>
+    ['08:30', '09:30', '17:30', '18:30', '19:30'].map((startTime) => ({
+      weekday,
+      startTime,
+      discipline: 'crossfit',
+    })),
+  ),
+  { weekday: 2, startTime: '10:30', discipline: 'hyrox' },
+  { weekday: 4, startTime: '10:30', discipline: 'hyrox' },
+];
 
 export async function runSeed(nodeEnv: string | undefined = process.env.NODE_ENV): Promise<SeedSummary> {
   if (nodeEnv === 'production') {
@@ -41,6 +58,8 @@ export async function runSeed(nodeEnv: string | undefined = process.env.NODE_ENV
   const existing = await organizations().findOne({ slug: DEMO_ORG_SLUG });
   if (existing) {
     await memberships().deleteMany({ orgId: existing._id });
+    await classSessions().deleteMany({ orgId: existing._id });
+    await classTemplates().deleteMany({ orgId: existing._id });
     await organizations().deleteOne({ _id: existing._id });
   }
   await users().deleteMany({ email: { $in: [...DEMO_EMAILS] } });
@@ -117,10 +136,32 @@ export async function runSeed(nodeEnv: string | undefined = process.env.NODE_ENV
     },
   ]);
 
+  // Grilla semanal + su materialización a 14 días (F3-01).
+  const templateDocs: ClassTemplateDoc[] = GRID.map((slot) => ({
+    _id: new ObjectId(),
+    orgId,
+    weekday: slot.weekday,
+    startTime: slot.startTime,
+    durationMin: 60,
+    discipline: slot.discipline,
+    capacity: 12,
+    active: true,
+    createdAt: now,
+    updatedAt: now,
+  }));
+  await classTemplates().insertMany(templateDocs);
+
+  let sessions = 0;
+  for (const template of templateDocs) {
+    sessions += await materializeTemplate(orgId, template, now);
+  }
+
   const summary: SeedSummary = {
     orgId: orgId.toHexString(),
     users: registered.length,
     memberships: registered.length + 1,
+    templates: templateDocs.length,
+    sessions,
   };
   logger.info({ ...summary, slug: DEMO_ORG_SLUG }, 'seed done');
   return summary;

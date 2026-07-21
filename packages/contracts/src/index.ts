@@ -8,3 +8,4 @@ export * from './members.js';
 export * from './orgs.js';
 export * from './permissions.js';
 export * from './pagination.js';
+export * from './schedule.js';

@@ -15,6 +15,7 @@ import { exercisesRoutes } from './modules/exercises/exercises.routes.js';
 import { meRoutes } from './modules/me/me.routes.js';
 import { membersRoutes } from './modules/members/members.routes.js';
 import { orgsRoutes } from './modules/orgs/orgs.routes.js';
+import { sessionsRoutes, templatesRoutes } from './modules/schedule/schedule.routes.js';
 
 export interface AppVariables {
   requestId: string;
@@ -127,6 +128,8 @@ export function createApp(config: Config, deps: AppDeps = {}) {
   app.route('/api/v1/members', membersRoutes(config));
   app.route('/api/v1/exercises', exercisesRoutes(config));
   app.route('/api/v1/entries', entriesRoutes(config));
+  app.route('/api/v1/templates', templatesRoutes(config));
+  app.route('/api/v1/sessions', sessionsRoutes(config));
 
   app.all('/api/*', (c) => c.json(errorBody('NOT_FOUND', 'Ruta inexistente.'), 404));
 

@@ -4,6 +4,7 @@ import { ConfigError, loadConfig } from './config.js';
 import { closeMongo, initMongo } from './db/client.js';
 import { ensureIndexes } from './db/indexes.js';
 import { expirePacksJob } from './jobs/expire-packs.js';
+import { materializeSessionsJob } from './jobs/materialize-sessions.js';
 import { startScheduler, type Scheduler } from './jobs/scheduler.js';
 import { logger } from './lib/logger.js';
 
@@ -29,7 +30,7 @@ async function main(): Promise<void> {
 
   let scheduler: Scheduler | null = null;
   if (config.ENABLE_JOBS) {
-    scheduler = startScheduler([expirePacksJob]);
+    scheduler = startScheduler([expirePacksJob, materializeSessionsJob]);
   }
 
   // Cierre limpio: dejar de aceptar conexiones, cerrar Mongo y salir.

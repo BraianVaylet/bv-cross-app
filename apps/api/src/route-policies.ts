@@ -17,7 +17,7 @@
 export type Access = 'public' | 'user' | 'member' | 'admin' | 'owner';
 
 /** Clave del catálogo de factories (test/factories.ts) para el test de IDOR. */
-export type ResourceKind = 'membership' | 'exercise' | 'entry';
+export type ResourceKind = 'membership' | 'exercise' | 'entry' | 'template' | 'session';
 
 export interface RoutePolicy {
   method: string;
@@ -95,4 +95,51 @@ export const ROUTE_POLICIES: RoutePolicy[] = [
     access: 'admin',
     resource: 'membership',
   },
+
+  // schedule — grilla del gimnasio (F3-01). Templates: solo admin.
+  { method: 'GET', path: '/api/v1/templates', access: 'admin' },
+  {
+    method: 'POST',
+    path: '/api/v1/templates',
+    access: 'admin',
+    sampleBody: {
+      weekday: 1,
+      startTime: '18:00',
+      durationMin: 60,
+      discipline: 'crossfit',
+      capacity: 12,
+    },
+  },
+  {
+    method: 'PATCH',
+    path: '/api/v1/templates/:id',
+    access: 'admin',
+    resource: 'template',
+    sampleBody: { capacity: 10 },
+  },
+  { method: 'DELETE', path: '/api/v1/templates/:id', access: 'admin', resource: 'template' },
+
+  // Sesiones: la grilla la lee cualquier miembro; gestionarlas es de admin.
+  { method: 'GET', path: '/api/v1/sessions', access: 'member' },
+  {
+    method: 'POST',
+    path: '/api/v1/sessions',
+    access: 'admin',
+    sampleBody: {
+      date: '2030-01-07',
+      startTime: '18:00',
+      durationMin: 60,
+      discipline: 'crossfit',
+      capacity: 12,
+    },
+  },
+  {
+    method: 'PATCH',
+    path: '/api/v1/sessions/:id',
+    access: 'admin',
+    resource: 'session',
+    sampleBody: { capacity: 10 },
+  },
+  { method: 'POST', path: '/api/v1/sessions/:id/cancel', access: 'admin', resource: 'session' },
+  { method: 'GET', path: '/api/v1/sessions/:id/attendees', access: 'admin', resource: 'session' },
 ];

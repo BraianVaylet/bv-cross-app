@@ -1,7 +1,15 @@
 import type { Role } from '@bv/contracts';
 import { ObjectId } from 'mongodb';
 import type { Config } from '../config.js';
-import { exercises, memberships, organizations, rmEntries, users } from '../db/collections.js';
+import {
+  classSessions,
+  classTemplates,
+  exercises,
+  memberships,
+  organizations,
+  rmEntries,
+  users,
+} from '../db/collections.js';
 import type { MembershipStatus } from '@bv/contracts';
 import { issueAccessToken } from '../modules/auth/token-service.js';
 import type { ResourceKind } from '../route-policies.js';
@@ -125,6 +133,44 @@ export const RESOURCE_FACTORIES: Record<
       kg: 100,
       date: '2026-01-01',
       createdAt: new Date(),
+    });
+    return id.toHexString();
+  },
+  template: async (orgId) => {
+    // Plantilla de la grilla de la org ajena (F3-01).
+    const now = new Date();
+    const id = new ObjectId();
+    await classTemplates().insertOne({
+      _id: id,
+      orgId,
+      weekday: 1,
+      startTime: '18:00',
+      durationMin: 60,
+      discipline: 'crossfit',
+      capacity: 12,
+      active: true,
+      createdAt: now,
+      updatedAt: now,
+    });
+    return id.toHexString();
+  },
+  session: async (orgId) => {
+    // Sesión materializada de la org ajena (F3-01).
+    const now = new Date();
+    const id = new ObjectId();
+    const startsAt = new Date(Date.now() + 86_400_000);
+    await classSessions().insertOne({
+      _id: id,
+      orgId,
+      templateId: null,
+      startsAt,
+      endsAt: new Date(startsAt.getTime() + 3_600_000),
+      discipline: 'crossfit',
+      capacity: 12,
+      bookedCount: 0,
+      status: 'scheduled',
+      createdAt: now,
+      updatedAt: now,
     });
     return id.toHexString();
   },

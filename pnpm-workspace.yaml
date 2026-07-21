@@ -1,6 +1,13 @@
 packages:
   - "apps/*"
   - "packages/*"
+overrides:
+  # GHSA-3jxr-9vmj-r5cp (high): DoS por expansión exponencial. Entra como
+  # transitiva de eslint (dependency real de @bv/config, que publica los
+  # presets). El parche es un patch compatible; se fuerza en todo el árbol.
+  # Acotado a la major 1: minimatch@3 usa la API vieja (default export) y con
+  # brace-expansion 2+ rompe con "expand is not a function".
+  brace-expansion@<1.1.16: "^1.1.16"
 allowBuilds:
   # esbuild: binario nativo de vite/vitest — necesario y confiable
   esbuild: true

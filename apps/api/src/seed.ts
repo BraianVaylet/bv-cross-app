@@ -1,6 +1,13 @@
 import { ObjectId } from 'mongodb';
-import { classSessions, classTemplates, memberships, organizations, users } from './db/collections.js';
-import type { ClassTemplateDoc } from './db/types.js';
+import {
+  classSessions,
+  classTemplates,
+  memberships,
+  organizations,
+  packs,
+  users,
+} from './db/collections.js';
+import type { ClassTemplateDoc, PackDoc } from './db/types.js';
 import { hashPassword } from './lib/crypto.js';
 import { logger } from './lib/logger.js';
 import { materializeTemplate } from './modules/schedule/schedule.service.js';
@@ -32,7 +39,14 @@ export interface SeedSummary {
   memberships: number;
   templates: number;
   sessions: number;
+  packs: number;
 }
+
+/** Catálogo de packs del box demo (F3-02). */
+const DEMO_PACKS: Array<Pick<PackDoc, 'name' | 'classCount' | 'durationDays' | 'price' | 'paymentMethod'>> = [
+  { name: '8 clases', classCount: 8, durationDays: 30, price: 25_000, paymentMethod: 'cash' },
+  { name: '12 clases', classCount: 12, durationDays: 30, price: 32_000, paymentMethod: 'debit' },
+];
 
 /** Grilla del box (F3-01): lun–sáb de crossfit + hyrox martes y jueves. */
 const GRID: Array<{ weekday: number; startTime: string; discipline: string }> = [
@@ -60,6 +74,7 @@ export async function runSeed(nodeEnv: string | undefined = process.env.NODE_ENV
     await memberships().deleteMany({ orgId: existing._id });
     await classSessions().deleteMany({ orgId: existing._id });
     await classTemplates().deleteMany({ orgId: existing._id });
+    await packs().deleteMany({ orgId: existing._id });
     await organizations().deleteOne({ _id: existing._id });
   }
   await users().deleteMany({ email: { $in: [...DEMO_EMAILS] } });
@@ -156,12 +171,25 @@ export async function runSeed(nodeEnv: string | undefined = process.env.NODE_ENV
     sessions += await materializeTemplate(orgId, template, now);
   }
 
+  // Catálogo de packs (F3-02).
+  await packs().insertMany(
+    DEMO_PACKS.map((p) => ({
+      _id: new ObjectId(),
+      orgId,
+      ...p,
+      currency: 'ARS' as const,
+      createdAt: now,
+      updatedAt: now,
+    })),
+  );
+
   const summary: SeedSummary = {
     orgId: orgId.toHexString(),
     users: registered.length,
     memberships: registered.length + 1,
     templates: templateDocs.length,
     sessions,
+    packs: DEMO_PACKS.length,
   };
   logger.info({ ...summary, slug: DEMO_ORG_SLUG }, 'seed done');
   return summary;

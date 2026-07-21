@@ -17,7 +17,7 @@
 | F0 | Fundaciones (monorepo + estándares) | 6 | [docs/tasks/F0.md](docs/tasks/F0.md) | 🔨 5/6 (F0-06 espera decisión de dominio — humano) |
 | F1 | API core: auth + organizaciones | 12 | [docs/tasks/F1.md](docs/tasks/F1.md) | 🔨 11/12 |
 | F2 | Migración de bv-cross (cargas) | 8 | [docs/tasks/F2.md](docs/tasks/F2.md) | 🔨 6/8 |
-| F3 | CRM: gestión del gimnasio | 12 | [docs/tasks/F3.md](docs/tasks/F3.md) | 🔨 1/12 |
+| F3 | CRM: gestión del gimnasio | 12 | [docs/tasks/F3.md](docs/tasks/F3.md) | 🔨 2/12 |
 | F4 | bv-cross-schedule: reservas | 8 | [docs/tasks/F4.md](docs/tasks/F4.md) | — |
 | F5 | Estadísticas + hardening | 7 | [docs/tasks/F5.md](docs/tasks/F5.md) | — |
 | F6 | Go-live | 5 | [docs/tasks/F6.md](docs/tasks/F6.md) | — |
@@ -62,7 +62,7 @@
 ## F3 — CRM · [specs](docs/tasks/F3.md)
 
 - [x] **F3-01** ⛔ 🔴 Fable — Módulo `schedule`: templates + materialización con timezones + sesiones (la tarea de fechas)
-- [ ] **F3-02** ⛔ 🟡 Opus — Módulo `packs`: catálogo con matriz de edición RN-14 y archivado
+- [x] **F3-02** ⛔ 🟡 Opus — Módulo `packs`: catálogo con matriz de edición RN-14 y archivado
 - [ ] **F3-03** ⛔ 🔴 Fable — Módulo `assignments`: snapshot inmutable, vencimiento en tz org, pago manual
 - [ ] **F3-04** ⛔ 🟡 Opus — CRM scaffolding + `AppShell` responsive + onboarding wizard (F1 del Funcional)
 - [ ] **F3-05** 🟡 Opus — Sección Clientes: `DataTable`, ficha, asignar pack, invitación por WhatsApp

@@ -1,6 +1,13 @@
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { createApp } from './app.js';
-import { classSessions, classTemplates, memberships, organizations, users } from './db/collections.js';
+import {
+  classSessions,
+  classTemplates,
+  memberships,
+  organizations,
+  packs,
+  users,
+} from './db/collections.js';
 import { DEMO_ORG_SLUG, DEMO_PASSWORD, runSeed } from './seed.js';
 import { testConfig } from './test/helpers.js';
 import { startTestDb, stopTestDb } from './test/mongo.js';
@@ -47,6 +54,19 @@ describe('seed de desarrollo (F1-11)', () => {
     expect(sessions.every((s) => s.startsAt.getTime() > now)).toBe(true);
     expect(sessions.every((s) => s.startsAt.getTime() < horizon)).toBe(true);
     expect(sessions.every((s) => s.bookedCount === 0 && s.status === 'scheduled')).toBe(true);
+  });
+
+  it('el catálogo de packs queda cargado (F3-02)', async () => {
+    const res = await runSeed('development');
+    const org = await organizations().findOne({ slug: DEMO_ORG_SLUG });
+
+    expect(res.packs).toBe(2);
+    const docs = await packs().find({ orgId: org?._id }).sort({ price: 1 }).toArray();
+    expect(docs.map((p) => [p.classCount, p.price, p.paymentMethod])).toEqual([
+      [8, 25_000, 'cash'],
+      [12, 32_000, 'debit'],
+    ]);
+    expect(docs.every((p) => p.archivedAt === undefined)).toBe(true);
   });
 
   it('login owner@demo.test OK; /me/memberships muestra la org; GET /members lista 7 fichas', async () => {

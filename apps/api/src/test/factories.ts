@@ -7,6 +7,7 @@ import {
   exercises,
   memberships,
   organizations,
+  packs,
   rmEntries,
   users,
 } from '../db/collections.js';
@@ -149,6 +150,24 @@ export const RESOURCE_FACTORIES: Record<
       discipline: 'crossfit',
       capacity: 12,
       active: true,
+      createdAt: now,
+      updatedAt: now,
+    });
+    return id.toHexString();
+  },
+  pack: async (orgId) => {
+    // Pack del catálogo de la org ajena (F3-02).
+    const now = new Date();
+    const id = new ObjectId();
+    await packs().insertOne({
+      _id: id,
+      orgId,
+      name: `Pack Ajeno ${id.toHexString().slice(-4)}`,
+      classCount: 8,
+      durationDays: 30,
+      price: 25_000,
+      currency: 'ARS',
+      paymentMethod: 'cash',
       createdAt: now,
       updatedAt: now,
     });

@@ -17,7 +17,13 @@
 export type Access = 'public' | 'user' | 'member' | 'admin' | 'owner';
 
 /** Clave del catálogo de factories (test/factories.ts) para el test de IDOR. */
-export type ResourceKind = 'membership' | 'exercise' | 'entry' | 'template' | 'session';
+export type ResourceKind =
+  | 'membership'
+  | 'exercise'
+  | 'entry'
+  | 'template'
+  | 'session'
+  | 'pack';
 
 export interface RoutePolicy {
   method: string;
@@ -95,6 +101,31 @@ export const ROUTE_POLICIES: RoutePolicy[] = [
     access: 'admin',
     resource: 'membership',
   },
+
+  // packs — catálogo del gimnasio (F3-02). Admin-only en fase 1.
+  { method: 'GET', path: '/api/v1/packs', access: 'admin' },
+  {
+    method: 'POST',
+    path: '/api/v1/packs',
+    access: 'admin',
+    sampleBody: {
+      name: 'Pack 8',
+      classCount: 8,
+      durationDays: 30,
+      price: 25000,
+      paymentMethod: 'cash',
+    },
+  },
+  {
+    method: 'PATCH',
+    path: '/api/v1/packs/:id',
+    access: 'admin',
+    resource: 'pack',
+    sampleBody: { name: 'Otro nombre' },
+  },
+  { method: 'DELETE', path: '/api/v1/packs/:id', access: 'admin', resource: 'pack' },
+  { method: 'POST', path: '/api/v1/packs/:id/archive', access: 'admin', resource: 'pack' },
+  { method: 'POST', path: '/api/v1/packs/:id/restore', access: 'admin', resource: 'pack' },
 
   // schedule — grilla del gimnasio (F3-01). Templates: solo admin.
   { method: 'GET', path: '/api/v1/templates', access: 'admin' },

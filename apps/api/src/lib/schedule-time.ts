@@ -59,6 +59,17 @@ export function addDaysYmd(ymd: string, days: number): string {
   return d.toISOString().slice(0, 10);
 }
 
+/**
+ * Último instante de un día de calendario en la timezone de la org
+ * (23:59:59.999 local). Lo usa el vencimiento de packs (RN-18): la vigencia
+ * cubre el día completo, así que un pack que vence "el 31" sirve hasta que
+ * termine el 31 en el gimnasio, no a las 00:00 UTC.
+ */
+export function endOfDayInTz(ymd: string, timeZone: string): Date {
+  const startOfNextDay = localToUtc(addDaysYmd(ymd, 1), '00:00', timeZone);
+  return new Date(startOfNextDay.getTime() - 1);
+}
+
 /** Día de la semana (0=domingo) de una fecha de calendario en la tz de la org. */
 export function weekdayInTz(ymd: string, timeZone: string): number {
   const { year, month, day } = parseYmd(ymd);

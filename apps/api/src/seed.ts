@@ -4,6 +4,7 @@ import {
   classTemplates,
   memberships,
   organizations,
+  packAssignments,
   packs,
   users,
 } from './db/collections.js';
@@ -40,6 +41,7 @@ export interface SeedSummary {
   templates: number;
   sessions: number;
   packs: number;
+  assignments: number;
 }
 
 /** Catálogo de packs del box demo (F3-02). */
@@ -75,6 +77,7 @@ export async function runSeed(nodeEnv: string | undefined = process.env.NODE_ENV
     await classSessions().deleteMany({ orgId: existing._id });
     await classTemplates().deleteMany({ orgId: existing._id });
     await packs().deleteMany({ orgId: existing._id });
+    await packAssignments().deleteMany({ orgId: existing._id });
     await organizations().deleteOne({ _id: existing._id });
   }
   await users().deleteMany({ email: { $in: [...DEMO_EMAILS] } });
@@ -172,15 +175,60 @@ export async function runSeed(nodeEnv: string | undefined = process.env.NODE_ENV
   }
 
   // Catálogo de packs (F3-02).
-  await packs().insertMany(
-    DEMO_PACKS.map((p) => ({
-      _id: new ObjectId(),
-      orgId,
-      ...p,
-      currency: 'ARS' as const,
-      createdAt: now,
-      updatedAt: now,
-    })),
+  const packDocs: PackDoc[] = DEMO_PACKS.map((p) => ({
+    _id: new ObjectId(),
+    orgId,
+    ...p,
+    currency: 'ARS' as const,
+    createdAt: now,
+    updatedAt: now,
+  }));
+  await packs().insertMany(packDocs);
+
+  // Asignaciones en 4 estados distintos, para ver la pantalla de saldo con
+  // datos realistas (F3-03): nueva, mitad usada, por vencer y vencida.
+  const pack8 = packDocs[0];
+  if (!pack8) throw new Error('seed: falta el pack de 8 clases');
+  const snapshot = {
+    name: pack8.name,
+    classCount: pack8.classCount,
+    durationDays: pack8.durationDays,
+    price: pack8.price,
+    currency: pack8.currency,
+    paymentMethod: pack8.paymentMethod,
+  };
+  const day = 86_400_000;
+  const assignmentPlan: Array<{
+    email: string;
+    classesUsed: number;
+    startsAt: Date;
+    expiresAt: Date;
+    status: 'active' | 'expired';
+  }> = [
+    { email: 'atleta1@demo.test', classesUsed: 0, startsAt: now, expiresAt: new Date(now.getTime() + 30 * day), status: 'active' },
+    { email: 'atleta2@demo.test', classesUsed: 4, startsAt: new Date(now.getTime() - 15 * day), expiresAt: new Date(now.getTime() + 15 * day), status: 'active' },
+    { email: 'atleta3@demo.test', classesUsed: 6, startsAt: new Date(now.getTime() - 27 * day), expiresAt: new Date(now.getTime() + 3 * day), status: 'active' },
+    { email: 'atleta4@demo.test', classesUsed: 8, startsAt: new Date(now.getTime() - 40 * day), expiresAt: new Date(now.getTime() - 10 * day), status: 'expired' },
+  ];
+  await packAssignments().insertMany(
+    assignmentPlan.map((a) => {
+      const userId = byEmail.get(a.email);
+      if (!userId) throw new Error(`seed: falta el usuario ${a.email}`);
+      return {
+        _id: new ObjectId(),
+        orgId,
+        userId,
+        packId: pack8._id,
+        snapshot,
+        startsAt: a.startsAt,
+        expiresAt: a.expiresAt,
+        classesUsed: a.classesUsed,
+        status: a.status,
+        payment: { amount: snapshot.price, method: snapshot.paymentMethod, paidAt: a.startsAt },
+        createdAt: a.startsAt,
+        updatedAt: a.startsAt,
+      };
+    }),
   );
 
   const summary: SeedSummary = {
@@ -190,6 +238,7 @@ export async function runSeed(nodeEnv: string | undefined = process.env.NODE_ENV
     templates: templateDocs.length,
     sessions,
     packs: DEMO_PACKS.length,
+    assignments: assignmentPlan.length,
   };
   logger.info({ ...summary, slug: DEMO_ORG_SLUG }, 'seed done');
   return summary;

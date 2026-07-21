@@ -5,6 +5,7 @@ import {
   classTemplates,
   memberships,
   organizations,
+  packAssignments,
   packs,
   users,
 } from './db/collections.js';
@@ -67,6 +68,22 @@ describe('seed de desarrollo (F1-11)', () => {
       [12, 32_000, 'debit'],
     ]);
     expect(docs.every((p) => p.archivedAt === undefined)).toBe(true);
+  });
+
+  it('las 4 asignaciones cubren los estados de la pantalla de saldo (F3-03)', async () => {
+    const res = await runSeed('development');
+    const org = await organizations().findOne({ slug: DEMO_ORG_SLUG });
+
+    expect(res.assignments).toBe(4);
+    const docs = await packAssignments().find({ orgId: org?._id }).sort({ classesUsed: 1 }).toArray();
+    expect(docs.map((a) => [a.classesUsed, a.status])).toEqual([
+      [0, 'active'], // recién comprada
+      [4, 'active'], // mitad usada
+      [6, 'active'], // por vencer
+      [8, 'expired'], // vencida y agotada
+    ]);
+    // el snapshot viaja completo en todas (RN-16)
+    expect(docs.every((a) => a.snapshot.classCount === 8 && a.snapshot.price === 25_000)).toBe(true);
   });
 
   it('login owner@demo.test OK; /me/memberships muestra la org; GET /members lista 7 fichas', async () => {

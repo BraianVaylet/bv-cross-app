@@ -23,7 +23,8 @@ export type ResourceKind =
   | 'entry'
   | 'template'
   | 'session'
-  | 'pack';
+  | 'pack'
+  | 'assignment';
 
 export interface RoutePolicy {
   method: string;
@@ -100,6 +101,29 @@ export const ROUTE_POLICIES: RoutePolicy[] = [
     path: '/api/v1/members/:id/entries',
     access: 'admin',
     resource: 'membership',
+  },
+
+  // assignments — packs asignados (F3-03). El saldo propio cuelga de /me.
+  { method: 'GET', path: '/api/v1/me/assignments', access: 'member' },
+  {
+    method: 'GET',
+    path: '/api/v1/members/:id/assignments',
+    access: 'admin',
+    resource: 'membership',
+  },
+  {
+    method: 'POST',
+    path: '/api/v1/members/:id/assignments',
+    access: 'admin',
+    resource: 'membership',
+    sampleBody: { packId: '0123456789abcdef01234567' },
+  },
+  {
+    method: 'POST',
+    path: '/api/v1/assignments/:id/cancel',
+    access: 'admin',
+    resource: 'assignment',
+    sampleBody: { reason: 'error de carga' },
   },
 
   // packs — catálogo del gimnasio (F3-02). Admin-only en fase 1.

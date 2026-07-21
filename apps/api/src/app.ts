@@ -8,6 +8,7 @@ import { pingMongo } from './db/client.js';
 import { createEmailProvider, type EmailProvider } from './lib/email.js';
 import { errorBody, onError } from './lib/errors.js';
 import { requestLogger } from './lib/logger.js';
+import { assignmentsRoutes } from './modules/assignments/assignments.routes.js';
 import { authRoutes } from './modules/auth/auth.routes.js';
 import { createAuthService } from './modules/auth/auth.service.js';
 import { entriesRoutes } from './modules/entries/entries.routes.js';
@@ -130,6 +131,7 @@ export function createApp(config: Config, deps: AppDeps = {}) {
   app.route('/api/v1/exercises', exercisesRoutes(config));
   app.route('/api/v1/entries', entriesRoutes(config));
   app.route('/api/v1/packs', packsRoutes(config));
+  app.route('/api/v1/assignments', assignmentsRoutes(config));
   app.route('/api/v1/templates', templatesRoutes(config));
   app.route('/api/v1/sessions', sessionsRoutes(config));
 

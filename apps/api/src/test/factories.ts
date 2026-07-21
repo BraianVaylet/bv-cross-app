@@ -7,6 +7,7 @@ import {
   exercises,
   memberships,
   organizations,
+  packAssignments,
   packs,
   rmEntries,
   users,
@@ -150,6 +151,33 @@ export const RESOURCE_FACTORIES: Record<
       discipline: 'crossfit',
       capacity: 12,
       active: true,
+      createdAt: now,
+      updatedAt: now,
+    });
+    return id.toHexString();
+  },
+  assignment: async (orgId) => {
+    // Asignación de un usuario ajeno en la org ajena (F3-03).
+    const now = new Date();
+    const id = new ObjectId();
+    await packAssignments().insertOne({
+      _id: id,
+      orgId,
+      userId: new ObjectId(),
+      packId: new ObjectId(),
+      snapshot: {
+        name: 'Pack Ajeno',
+        classCount: 8,
+        durationDays: 30,
+        price: 25_000,
+        currency: 'ARS',
+        paymentMethod: 'cash',
+      },
+      startsAt: now,
+      expiresAt: new Date(now.getTime() + 30 * 86_400_000),
+      classesUsed: 0,
+      status: 'active',
+      payment: { amount: 25_000, method: 'cash', paidAt: now },
       createdAt: now,
       updatedAt: now,
     });

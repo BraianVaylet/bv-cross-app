@@ -1,6 +1,7 @@
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { createApp } from './app.js';
 import {
+  bookings,
   classSessions,
   classTemplates,
   memberships,
@@ -54,7 +55,9 @@ describe('seed de desarrollo (F1-11)', () => {
     const horizon = now + 15 * 86_400_000;
     expect(sessions.every((s) => s.startsAt.getTime() > now)).toBe(true);
     expect(sessions.every((s) => s.startsAt.getTime() < horizon)).toBe(true);
-    expect(sessions.every((s) => s.bookedCount === 0 && s.status === 'scheduled')).toBe(true);
+    expect(sessions.every((s) => s.status === 'scheduled')).toBe(true);
+    // solo las 3 próximas tienen anotados (F4-01)
+    expect(sessions.filter((s) => s.bookedCount > 0)).toHaveLength(3);
   });
 
   it('el catálogo de packs queda cargado (F3-02)', async () => {
@@ -75,15 +78,40 @@ describe('seed de desarrollo (F1-11)', () => {
     const org = await organizations().findOne({ slug: DEMO_ORG_SLUG });
 
     expect(res.assignments).toBe(4);
-    const docs = await packAssignments().find({ orgId: org?._id }).sort({ classesUsed: 1 }).toArray();
+    const docs = await packAssignments()
+      .find({ orgId: org?._id })
+      .sort({ classesUsed: 1, status: 1 })
+      .toArray();
+    // los créditos consumidos incluyen las reservas del seed (F4-01)
     expect(docs.map((a) => [a.classesUsed, a.status])).toEqual([
-      [0, 'active'], // recién comprada
-      [4, 'active'], // mitad usada
-      [6, 'active'], // por vencer
+      [3, 'active'], // recién comprada, ya con 3 clases anotadas
+      [6, 'active'], // mitad usada, vence en 15 días
+      [8, 'exhausted'], // se agotó reservando: transición RN-13 real
       [8, 'expired'], // vencida y agotada
     ]);
     // el snapshot viaja completo en todas (RN-16)
     expect(docs.every((a) => a.snapshot.classCount === 8 && a.snapshot.price === 25_000)).toBe(true);
+  });
+
+  it('las reservas del seed dejan los contadores coherentes (F4-01)', async () => {
+    const res = await runSeed('development');
+    const org = await organizations().findOne({ slug: DEMO_ORG_SLUG });
+
+    expect(res.bookings).toBe(7);
+    const docs = await bookings().find({ orgId: org?._id }).toArray();
+    expect(docs).toHaveLength(7);
+    expect(docs.every((b) => b.status === 'booked')).toBe(true);
+
+    // bookedCount de cada sesión == reservas activas contra ella
+    const sessions = await classSessions().find({ orgId: org?._id, bookedCount: { $gt: 0 } }).toArray();
+    for (const session of sessions) {
+      expect(session.bookedCount).toBe(docs.filter((b) => b.sessionId.equals(session._id)).length);
+    }
+    // ninguna reserva cuelga de un pack inexistente
+    const assignmentIds = (await packAssignments().find({ orgId: org?._id }).toArray()).map((a) =>
+      a._id.toHexString(),
+    );
+    expect(docs.every((b) => assignmentIds.includes(b.packAssignmentId.toHexString()))).toBe(true);
   });
 
   it('login owner@demo.test OK; /me/memberships muestra la org; GET /members lista 7 fichas', async () => {

@@ -1,5 +1,6 @@
 import { ObjectId } from 'mongodb';
 import {
+  bookings,
   classSessions,
   classTemplates,
   memberships,
@@ -11,6 +12,7 @@ import {
 import type { ClassTemplateDoc, PackDoc } from './db/types.js';
 import { hashPassword } from './lib/crypto.js';
 import { logger } from './lib/logger.js';
+import { book } from './modules/bookings/booking-service.js';
 import { materializeTemplate } from './modules/schedule/schedule.service.js';
 
 /**
@@ -42,6 +44,7 @@ export interface SeedSummary {
   sessions: number;
   packs: number;
   assignments: number;
+  bookings: number;
 }
 
 /** Catálogo de packs del box demo (F3-02). */
@@ -78,6 +81,7 @@ export async function runSeed(nodeEnv: string | undefined = process.env.NODE_ENV
     await classTemplates().deleteMany({ orgId: existing._id });
     await packs().deleteMany({ orgId: existing._id });
     await packAssignments().deleteMany({ orgId: existing._id });
+    await bookings().deleteMany({ orgId: existing._id });
     await organizations().deleteOne({ _id: existing._id });
   }
   await users().deleteMany({ email: { $in: [...DEMO_EMAILS] } });
@@ -185,8 +189,9 @@ export async function runSeed(nodeEnv: string | undefined = process.env.NODE_ENV
   }));
   await packs().insertMany(packDocs);
 
-  // Asignaciones en 4 estados distintos, para ver la pantalla de saldo con
-  // datos realistas (F3-03): nueva, mitad usada, por vencer y vencida.
+  // Asignaciones de partida (F3-03). Los créditos que faltan hasta el estado
+  // final los consumen las reservas de más abajo, con el servicio real: así el
+  // saldo, los anotados y `bookedCount` cuentan la misma historia.
   const pack8 = packDocs[0];
   if (!pack8) throw new Error('seed: falta el pack de 8 clases');
   const snapshot = {
@@ -231,6 +236,30 @@ export async function runSeed(nodeEnv: string | undefined = process.env.NODE_ENV
     }),
   );
 
+  // Reservas reales sobre las 3 próximas clases (F4-01): pasan por el
+  // booking-service, no por un insert directo — el seed nunca inventa un
+  // estado que la API no podría producir. Deja a atleta3 con el pack agotado
+  // (transición RN-13) para que el CRM muestre también ese caso.
+  const upcoming = await classSessions()
+    .find({ orgId, startsAt: { $gt: new Date() } })
+    .sort({ startsAt: 1 })
+    .limit(3)
+    .toArray();
+  const attendees = [
+    ['atleta1@demo.test', 'atleta2@demo.test', 'atleta3@demo.test'],
+    ['atleta1@demo.test', 'atleta2@demo.test', 'atleta3@demo.test'],
+    ['atleta1@demo.test'],
+  ];
+  let bookingCount = 0;
+  for (const [i, session] of upcoming.entries()) {
+    for (const email of attendees[i] ?? []) {
+      const userId = byEmail.get(email);
+      if (!userId) throw new Error(`seed: falta el usuario ${email}`);
+      await book(userId, orgId, session._id);
+      bookingCount += 1;
+    }
+  }
+
   const summary: SeedSummary = {
     orgId: orgId.toHexString(),
     users: registered.length,
@@ -239,6 +268,7 @@ export async function runSeed(nodeEnv: string | undefined = process.env.NODE_ENV
     sessions,
     packs: DEMO_PACKS.length,
     assignments: assignmentPlan.length,
+    bookings: bookingCount,
   };
   logger.info({ ...summary, slug: DEMO_ORG_SLUG }, 'seed done');
   return summary;

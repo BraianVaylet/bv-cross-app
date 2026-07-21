@@ -95,8 +95,8 @@ export function sessionsRoutes(config: Config) {
   });
 
   router.post('/:id/cancel', requireRole('schedule:manage'), async (c) => {
-    const session = await cancelSession(c.get('org'), parseId(c.req.param('id')));
-    return c.json({ session });
+    const result = await cancelSession(c.get('org'), parseId(c.req.param('id')), c.get('userId'));
+    return c.json(result);
   });
 
   router.get('/:id/attendees', requireRole('schedule:manage'), async (c) => {

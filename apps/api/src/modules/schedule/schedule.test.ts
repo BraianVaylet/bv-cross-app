@@ -232,7 +232,7 @@ describe('schedule (F3-01)', () => {
     );
   });
 
-  it('caso 12: cancelar con anotados → 409 HAS_BOOKINGS (pre-F4)', async () => {
+  it('caso 12: cancelar con anotados cancela las reservas (F4-01) y es idempotente', async () => {
     await createTemplate();
     const session = await classSessions().findOne({ orgId: orgA });
     if (!session) throw new Error('fixture: sin sesión');
@@ -242,17 +242,25 @@ describe('schedule (F3-01)', () => {
       method: 'POST',
       token: admin.token,
     });
-    expect(res.status).toBe(409);
-    expect(((await res.json()) as { error: { code: string } }).error.code).toBe('HAS_BOOKINGS');
+    expect(res.status).toBe(200);
+    const body = (await res.json()) as {
+      session: { status: string; bookedCount: number };
+      refundedBookings: number;
+      failedRefunds: number;
+    };
+    expect(body.session.status).toBe('cancelled');
+    expect(body.session.bookedCount).toBe(0);
+    expect(body.refundedBookings).toBe(1);
+    expect(body.failedRefunds).toBe(0);
+    expect(await bookings().countDocuments({ sessionId: session._id, status: 'booked' })).toBe(0);
 
-    // sin anotados sí cancela
-    await classSessions().updateOne({ _id: session._id }, { $set: { bookedCount: 0 } });
-    const ok = await call(`/api/v1/sessions/${session._id.toHexString()}/cancel`, {
+    // re-cancelar no vuelve a devolver nada
+    const again = await call(`/api/v1/sessions/${session._id.toHexString()}/cancel`, {
       method: 'POST',
       token: admin.token,
     });
-    expect(ok.status).toBe(200);
-    expect(((await ok.json()) as { session: { status: string } }).session.status).toBe('cancelled');
+    expect(again.status).toBe(200);
+    expect(((await again.json()) as { refundedBookings: number }).refundedBookings).toBe(0);
   });
 
   it('caso 13: myBookingId solo aparece para quien reservó', async () => {

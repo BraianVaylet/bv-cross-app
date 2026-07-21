@@ -6,7 +6,7 @@
 
 ## 1. Dónde está cada cosa
 
-`main` contiene F0 (5/6), **F1-01..11 y F2-01..06** — entró con el PR consolidado #29. Lo que sigue vive en **4 PRs abiertos**, todos con CI verde.
+`main` contiene F0 (5/6), **F1-01..11 y F2-01..06** — entró con el PR consolidado #29. Lo que sigue vive en **5 PRs abiertos**, todos con CI verde.
 
 ### PRs abiertos y orden de merge
 
@@ -16,9 +16,10 @@ main
  └─ #31  F3-01  schedule
      └─ #32  F3-02  packs
          └─ #33  F3-03  assignments
+             └─ #34  F4-01  booking-service
 ```
 
-**#30 y #31 salen de `main` y se pueden mergear en cualquier orden.** #32 y #33 están encadenados: mergear #31 → #32 → #33, borrando cada rama para que GitHub retargetee la siguiente.
+**#30 y #31 salen de `main` y se pueden mergear en cualquier orden.** #32, #33 y #34 están encadenados: mergear #31 → #32 → #33 → #34, borrando cada rama para que GitHub retargetee la siguiente.
 
 > #29 reemplazó un stack previo de 8 PRs (#19-#28) que quedaron **cerrados sin mergear**: su contenido está íntegro en `main`.
 
@@ -30,17 +31,18 @@ main
 | **F1** API core | 11/12 | F1-12: deploy de la API — **necesita Atlas M0 + Railway creados por un humano** |
 | **F2** Migración bv-cross | 7/8 | F2-07: deploy del FE — depende de F1-12 |
 | **F3** CRM | 3/12 | F3-04..12: el CRM (frontend). **La API que F4 necesita (F3-01/02/03) ya está completa** |
-| **F4-F6** | — | No arrancadas |
+| **F4** Reservas | 1/8 | F4-01 (el núcleo transaccional) listo; sigue F4-02, los endpoints que lo exponen |
+| **F5-F6** | — | No arrancadas |
 
 ### Lo que está implementado y funcionando
 
-**API (`apps/api`)** — auth completa (registro, verificación por email, login, refresh rotativo con detección de reuso, reset, cambio de password), multi-tenancy por `X-Org-Id`, organizaciones con joinCode, members (CRM), exercises (catálogo + personales), entries (RMs), schedule (templates + sesiones), packs y assignments. Dos jobs en el scheduler: `expire-packs` y `materialize-sessions`.
+**API (`apps/api`)** — auth completa (registro, verificación por email, login, refresh rotativo con detección de reuso, reset, cambio de password), multi-tenancy por `X-Org-Id`, organizaciones con joinCode, members (CRM), exercises (catálogo + personales), entries (RMs), schedule (templates + sesiones), packs, assignments y el `booking-service` transaccional (reservar, cancelar, cancelar la clase entera). Dos jobs en el scheduler: `expire-packs` y `materialize-sessions`.
 
 **FE de cargas (`apps/cross`)** — migrado de v1 al monorepo: auth nueva (token en memoria, refresh single-flight), join a organización, Home con catálogo + personales y búsqueda, detalle con la calculadora de cargas de v1, cuenta, PWA con prompt de actualización.
 
 **Suite de aislamiento multi-tenant** — creció de 39 a **179 tests generados** automáticamente. Cada ruta nueva se registra en `route-policies.ts` y la suite cruza esa tabla contra las rutas reales de Hono: **si agregás un endpoint y no lo registrás, el build falla**.
 
-**Seed de desarrollo** (`pnpm --filter @bv/api db:seed`) — org demo `bahia-cross-demo` con owner, admin, 4 atletas + 1 pre-carga, grilla lun–sáb materializada 14 días, 2 packs y 4 asignaciones en distintos estados.
+**Seed de desarrollo** (`pnpm --filter @bv/api db:seed`) — org demo `bahia-cross-demo` con owner, admin, 4 atletas + 1 pre-carga, grilla lun–sáb materializada 14 días, 2 packs, 4 asignaciones en distintos estados y 7 reservas sobre las 3 próximas clases.
 
 **Migración v1→v2** (`db:migrate-v1`) — dry-run por defecto, `--commit`, `--rollback`. Ver [scripts/README-migrate.md](../apps/api/scripts/README-migrate.md).
 
@@ -54,7 +56,11 @@ Las que no estaban en los docs de diseño y se resolvieron al implementar:
 | Archivados del catálogo para el atleta | Los alcanza por el **detalle** (historial legible, RN-19), no por el listado | `GET /exercises?includeArchived=1` es admin-only. Exponer el listado de archivados-con-historial al atleta sería una mejora de API, no de FE |
 | Edición de registros de carga | v2 **no** edita entries in-place: se borra y se recarga | No existe `PATCH /entries`; el historial es append-only salvo borrado |
 | Matriz RN-14: conteo + update no atómicos | Aceptado a propósito, sin transacción | El snapshot RN-16 ya protege al cliente aunque un cambio se cuele en la ventana |
-| Cancelar sesión con anotados | `HAS_BOOKINGS` 409 **hasta F4-01** | Devolver créditos exige la transacción del booking-service |
+| Cancelar sesión con anotados | Resuelto en F4-01: `HAS_BOOKINGS` **eliminado**, la ruta devuelve `{ session, refundedBookings, failedRefunds }` | La sesión queda cancelada aunque una devolución falle; el conteo le dice al CRM qué revisar a mano |
+| Cancelación del gym: una transacción o N | **Una transacción por reserva**, no una gigante | 40 anotados en una sola tx es conflicto de escritura asegurado, y una falla parcial dejaría todo sin devolver |
+| Borde exacto de la ventana RN-08 | Regla `>=` (cancelar justo en el límite se permite), probada como **función pura** (`isCancellable`) | El instante exacto no se puede provocar con el reloj real sin flakear, y falsear el clock cerca de Mongo rompe el driver |
+| Umbral de cobertura en `branches` | 90 en bookings, **80 en assignments** | Las ramas de assignments son spreads de campos opcionales: exigir 90 compra combinatoria de DTOs, no lógica probada |
+| Reservas en el seed | Se crean con el **booking-service real**, no con inserts | El seed nunca debe inventar un estado que la API no podría producir (además deja la transición RN-13 a `exhausted` visible en la demo) |
 | Password en la migración v1→v2 | No se migra el hash: se crea una **aleatoria** y el dueño usa "olvidé mi contraseña" | Cambia el esquema de identidad (alias → email) |
 | DST con hora local inexistente | Se usa el resultado determinista de la librería (sesión corrida) | Preferible a dejar un hueco silencioso en la grilla |
 
@@ -77,7 +83,7 @@ Las que no estaban en los docs de diseño y se resolvieron al implementar:
 
 ### Próximas tareas sin bloqueo humano
 
-- **F4-01** — `booking-service` transaccional (reservar/cancelar con concurrencia, 14 casos, cobertura ≥90%). Es la tarea más delicada que queda: toca créditos y cupos bajo concurrencia real.
+- **F4-02** — endpoints de bookings + `GET /me/credits`. El servicio ya devuelve la sesión y el pack actualizados, así que las respuestas pueden traer el saldo sin refetch.
 - **F3-04+** — el CRM (frontend): scaffolding, AppShell, secciones de clientes/clases/packs.
 
 ### Bloqueadas por infraestructura (humano)

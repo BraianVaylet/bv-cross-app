@@ -14,6 +14,7 @@ import { organizations } from '../../db/collections.js';
 import type { ClassSessionDoc, ClassTemplateDoc } from '../../db/types.js';
 import { DomainError } from '../../lib/errors.js';
 import { addDaysYmd, datesBetween, localToUtc, todayInTz, weekdayInTz } from '../../lib/schedule-time.js';
+import { cancelSessionByGym } from '../bookings/booking-service.js';
 import {
   deleteSessions,
   deleteTemplate,
@@ -331,23 +332,22 @@ export async function patchSession(
 }
 
 /**
- * Cancelación (RN-09). Hasta F4-01 solo se permite sin anotados: devolver los
- * créditos exige la transacción del booking-service, que llega en esa tarea.
+ * Cancelación (RN-09): delega en el booking-service, que cancela las reservas
+ * y devuelve los créditos en transacción (F4-01). `failedRefunds > 0` no
+ * invalida la cancelación — la sesión queda cancelada y el CRM muestra cuántas
+ * devoluciones hay que revisar a mano.
  */
-export async function cancelSession(org: OrgContext, sessionId: string): Promise<SessionDto> {
-  const orgId = new ObjectId(org.orgId);
-  const id = new ObjectId(sessionId);
-  const current = await findSession(orgId, id);
-  if (!current) throw new DomainError('NOT_FOUND', 'La sesión no existe.');
-  if (current.bookedCount > 0) {
-    throw new DomainError(
-      'HAS_BOOKINGS',
-      'La sesión tiene anotados: la cancelación con devolución de créditos llega en F4-01.',
-    );
-  }
-  const updated = await updateSession(orgId, id, { status: 'cancelled' });
-  if (!updated) throw new DomainError('NOT_FOUND', 'La sesión no existe.');
-  return toSessionDto(updated, null);
+export async function cancelSession(
+  org: OrgContext,
+  sessionId: string,
+  actorUserId: string,
+): Promise<{ session: SessionDto; refundedBookings: number; failedRefunds: number }> {
+  const { session, cancelled, failed } = await cancelSessionByGym(
+    new ObjectId(org.orgId),
+    new ObjectId(sessionId),
+    new ObjectId(actorUserId),
+  );
+  return { session: toSessionDto(session, null), refundedBookings: cancelled, failedRefunds: failed };
 }
 
 export async function sessionAttendees(org: OrgContext, sessionId: string): Promise<AttendeeDto[]> {

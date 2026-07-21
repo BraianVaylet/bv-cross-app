@@ -17,9 +17,12 @@ main
      └─ #32  F3-02  packs
          └─ #33  F3-03  assignments
              └─ #34  F4-01  booking-service
+                 └─ #35  F4-02  endpoints de bookings
 ```
 
-**#30 y #31 salen de `main` y se pueden mergear en cualquier orden.** #32, #33 y #34 están encadenados: mergear #31 → #32 → #33 → #34, borrando cada rama para que GitHub retargetee la siguiente.
+**#30 y #31 salen de `main` y se pueden mergear en cualquier orden.** #32 a #35 están encadenados: mergear #31 → #32 → #33 → #34 → #35, borrando cada rama para que GitHub retargetee la siguiente.
+
+> El bump de `@hono/node-server` a 2.x (advisory del 21/07, ver §4) viaja en **#34**: hasta que ese entre, `osv-scanner` va a voltear el CI de `main`, #30 y #31-#33 si se los vuelve a correr.
 
 > #29 reemplazó un stack previo de 8 PRs (#19-#28) que quedaron **cerrados sin mergear**: su contenido está íntegro en `main`.
 
@@ -31,7 +34,7 @@ main
 | **F1** API core | 11/12 | F1-12: deploy de la API — **necesita Atlas M0 + Railway creados por un humano** |
 | **F2** Migración bv-cross | 7/8 | F2-07: deploy del FE — depende de F1-12 |
 | **F3** CRM | 3/12 | F3-04..12: el CRM (frontend). **La API que F4 necesita (F3-01/02/03) ya está completa** |
-| **F4** Reservas | 1/8 | F4-01 (el núcleo transaccional) listo; sigue F4-02, los endpoints que lo exponen |
+| **F4** Reservas | 2/8 | La API de reservas está entera (servicio + endpoints + saldo). Falta el FE: F4-03 scaffolding de `apps/schedule` en adelante |
 | **F5-F6** | — | No arrancadas |
 
 ### Lo que está implementado y funcionando
@@ -40,7 +43,7 @@ main
 
 **FE de cargas (`apps/cross`)** — migrado de v1 al monorepo: auth nueva (token en memoria, refresh single-flight), join a organización, Home con catálogo + personales y búsqueda, detalle con la calculadora de cargas de v1, cuenta, PWA con prompt de actualización.
 
-**Suite de aislamiento multi-tenant** — creció de 39 a **179 tests generados** automáticamente. Cada ruta nueva se registra en `route-policies.ts` y la suite cruza esa tabla contra las rutas reales de Hono: **si agregás un endpoint y no lo registrás, el build falla**.
+**Suite de aislamiento multi-tenant** — creció de 39 a **196 tests generados** automáticamente. Cada ruta nueva se registra en `route-policies.ts` y la suite cruza esa tabla contra las rutas reales de Hono: **si agregás un endpoint y no lo registrás, el build falla**.
 
 **Seed de desarrollo** (`pnpm --filter @bv/api db:seed`) — org demo `bahia-cross-demo` con owner, admin, 4 atletas + 1 pre-carga, grilla lun–sáb materializada 14 días, 2 packs, 4 asignaciones en distintos estados y 7 reservas sobre las 3 próximas clases.
 
@@ -84,7 +87,7 @@ Las que no estaban en los docs de diseño y se resolvieron al implementar:
 
 ### Próximas tareas sin bloqueo humano
 
-- **F4-02** — endpoints de bookings + `GET /me/credits`. El servicio ya devuelve la sesión y el pack actualizados, así que las respuestas pueden traer el saldo sin refetch.
+- **F4-03** — scaffolding de `apps/schedule` (la PWA del atleta) y la verificación del SSO por cookie de apex. La API de reservas ya está completa: el FE puede arrancar.
 - **F3-04+** — el CRM (frontend): scaffolding, AppShell, secciones de clientes/clases/packs.
 
 ### Bloqueadas por infraestructura (humano)

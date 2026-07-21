@@ -1,5 +1,6 @@
 export * from './assignments.js';
 export * from './auth.js';
+export * from './bookings.js';
 export * from './core.js';
 export * from './entries.js';
 export * from './enums.js';

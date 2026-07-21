@@ -24,7 +24,8 @@ export type ResourceKind =
   | 'template'
   | 'session'
   | 'pack'
-  | 'assignment';
+  | 'assignment'
+  | 'booking';
 
 export interface RoutePolicy {
   method: string;
@@ -197,4 +198,16 @@ export const ROUTE_POLICIES: RoutePolicy[] = [
   },
   { method: 'POST', path: '/api/v1/sessions/:id/cancel', access: 'admin', resource: 'session' },
   { method: 'GET', path: '/api/v1/sessions/:id/attendees', access: 'admin', resource: 'session' },
+
+  // bookings — el atleta reserva y cancela lo suyo (F4-02). No hay ruta de
+  // admin: cancelar la clase entera es `POST /sessions/:id/cancel`.
+  {
+    method: 'POST',
+    path: '/api/v1/bookings',
+    access: 'member',
+    sampleBody: { sessionId: '000000000000000000000001' },
+  },
+  { method: 'POST', path: '/api/v1/bookings/:id/cancel', access: 'member', resource: 'booking' },
+  { method: 'GET', path: '/api/v1/me/bookings', access: 'member' },
+  { method: 'GET', path: '/api/v1/me/credits', access: 'member' },
 ];

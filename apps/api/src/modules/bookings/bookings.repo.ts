@@ -165,6 +165,77 @@ export function findSessionTx(
   return classSessions().findOne({ _id: sessionId, orgId }, { session });
 }
 
+/** Reserva con su clase embebida (la lista del atleta, F4-02). */
+export interface BookingWithSession extends BookingDoc {
+  session: ClassSessionDoc;
+}
+
+type Scope = 'upcoming' | 'history';
+
+/**
+ * Página de reservas del atleta con `$lookup` a la clase.
+ *
+ * `upcoming` son las vivas de clases que no empezaron (asc, la próxima
+ * primero); `history` es todo el resto (desc, lo último primero). El cursor es
+ * keyset sobre `(session.startsAt, _id)` — no alcanza con el `_id`, porque el
+ * orden es por fecha de clase y no por fecha de reserva.
+ */
+export async function listMyBookings(
+  orgId: ObjectId,
+  userId: ObjectId,
+  scope: Scope,
+  after: ObjectId | null,
+  limit: number,
+): Promise<BookingWithSession[]> {
+  const now = new Date();
+  const asc = scope === 'upcoming';
+  const dir = asc ? 1 : -1;
+  const cmp = asc ? '$gt' : '$lt';
+
+  const pipeline: Record<string, unknown>[] = [
+    { $match: { orgId, userId } },
+    {
+      $lookup: {
+        from: 'classSessions',
+        localField: 'sessionId',
+        foreignField: '_id',
+        as: 'session',
+      },
+    },
+    { $unwind: '$session' },
+    {
+      $match: asc
+        ? { status: 'booked', 'session.startsAt': { $gt: now } }
+        : { $or: [{ status: { $ne: 'booked' } }, { 'session.startsAt': { $lte: now } }] },
+    },
+  ];
+
+  if (after) {
+    const anchor = await bookings().findOne({ _id: after, orgId, userId });
+    const anchorSession = anchor ? await classSessions().findOne({ _id: anchor.sessionId }) : null;
+    // Cursor inválido (de otro usuario, borrado): se ignora y arranca de cero,
+    // que es preferible a un 400 en una lista al scrollear.
+    if (anchorSession) {
+      pipeline.push({
+        $match: {
+          $or: [
+            { 'session.startsAt': { [cmp]: anchorSession.startsAt } },
+            { 'session.startsAt': anchorSession.startsAt, _id: { [cmp]: after } },
+          ],
+        },
+      });
+    }
+  }
+
+  pipeline.push({ $sort: { 'session.startsAt': dir, _id: dir } }, { $limit: limit });
+  return bookings().aggregate<BookingWithSession>(pipeline).toArray();
+}
+
+/** Todas las asignaciones del atleta en la org: el saldo se arma en el servicio. */
+export function listMyAssignments(orgId: ObjectId, userId: ObjectId): Promise<PackAssignmentDoc[]> {
+  return packAssignments().find({ orgId, userId }).toArray();
+}
+
 /** Ventana de cancelación de la org (RN-08): se lee siempre, nunca se cachea. */
 export async function cancellationWindowHours(
   orgId: ObjectId,

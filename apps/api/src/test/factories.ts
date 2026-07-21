@@ -2,6 +2,7 @@ import type { Role } from '@bv/contracts';
 import { ObjectId } from 'mongodb';
 import type { Config } from '../config.js';
 import {
+  bookings,
   classSessions,
   classTemplates,
   exercises,
@@ -198,6 +199,20 @@ export const RESOURCE_FACTORIES: Record<
       paymentMethod: 'cash',
       createdAt: now,
       updatedAt: now,
+    });
+    return id.toHexString();
+  },
+  booking: async (orgId) => {
+    // Reserva de un usuario ajeno en la org ajena (F4-02).
+    const id = new ObjectId();
+    await bookings().insertOne({
+      _id: id,
+      orgId,
+      sessionId: new ObjectId(),
+      userId: new ObjectId(),
+      packAssignmentId: new ObjectId(),
+      status: 'booked',
+      bookedAt: new Date(),
     });
     return id.toHexString();
   },

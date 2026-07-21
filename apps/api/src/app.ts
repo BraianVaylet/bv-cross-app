@@ -9,6 +9,7 @@ import { createEmailProvider, type EmailProvider } from './lib/email.js';
 import { errorBody, onError } from './lib/errors.js';
 import { requestLogger } from './lib/logger.js';
 import { assignmentsRoutes } from './modules/assignments/assignments.routes.js';
+import { bookingsRoutes } from './modules/bookings/bookings.routes.js';
 import { authRoutes } from './modules/auth/auth.routes.js';
 import { createAuthService } from './modules/auth/auth.service.js';
 import { entriesRoutes } from './modules/entries/entries.routes.js';
@@ -134,6 +135,7 @@ export function createApp(config: Config, deps: AppDeps = {}) {
   app.route('/api/v1/assignments', assignmentsRoutes(config));
   app.route('/api/v1/templates', templatesRoutes(config));
   app.route('/api/v1/sessions', sessionsRoutes(config));
+  app.route('/api/v1/bookings', bookingsRoutes(config));
 
   app.all('/api/*', (c) => c.json(errorBody('NOT_FOUND', 'Ruta inexistente.'), 404));
 

@@ -9,6 +9,8 @@ export type { AppShellProps, AppShellNavItem, AppShellOrg } from './components/A
 export { Badge } from './components/Badge.js';
 export type { BadgeTone } from './components/Badge.js';
 export { Chip } from './components/Chip.js';
+export { DataTable } from './components/DataTable.js';
+export type { DataTableColumn, DataTableProps } from './components/DataTable.js';
 export type { ChipProps } from './components/Chip.js';
 export { Segmented } from './components/Segmented.js';
 export { Modal } from './components/Modal.js';

@@ -21,7 +21,7 @@ Los seis PRs encadenados (#30-#35) quedaron **cerrados sin mergear** al abrir el
 | **F0** Fundaciones | 5/6 | F0-06: comprar dominio (decisión humana; solo bloquea F6) |
 | **F1** API core | 11/12 | F1-12: deploy de la API — **necesita Atlas M0 + Railway creados por un humano** |
 | **F2** Migración bv-cross | 7/8 | F2-07: deploy del FE — depende de F1-12 |
-| **F3** CRM | 4/12 | `apps/crm` navegable con onboarding real. Faltan las secciones: F3-05..F3-12 |
+| **F3** CRM | 5/12 | `apps/crm` con onboarding y la sección Clientes operativa (alta, ficha, asignar pack). Faltan F3-06..F3-12 |
 | **F4** Reservas | 6/8 | **La app del atleta está completa**: reserva, cancela, cambia de horario y ve su saldo. Falta el deploy (F4-07, depende de F1-12) y los E2E (F4-08) |
 | **F5-F6** | — | No arrancadas |
 
@@ -29,7 +29,7 @@ Los seis PRs encadenados (#30-#35) quedaron **cerrados sin mergear** al abrir el
 
 **API (`apps/api`)** — auth completa (registro, verificación por email, login, refresh rotativo con detección de reuso, reset, cambio de password), multi-tenancy por `X-Org-Id`, organizaciones con joinCode, members (CRM), exercises (catálogo + personales), entries (RMs), schedule (templates + sesiones), packs, assignments y el `booking-service` transaccional (reservar, cancelar, cancelar la clase entera). Dos jobs en el scheduler: `expire-packs` y `materialize-sessions`.
 
-**CRM (`apps/crm`, "BV CRM")** — shell con sidebar en escritorio y barra inferior en el teléfono (`AppShell`, nuevo en `@bv/ui`), guard de rol (solo owner/admin; el atleta que entra por error ve una explicación, no un 403) y **onboarding del dueño**: crear el gimnasio, una clase y un pack —los dos últimos salteables— y el código de organización al final con el mensaje de invitación listo para copiar. Las secciones son placeholders que dicen en qué tarea llegan (F3-05..F3-11).
+**CRM (`apps/crm`, "BV CRM")** — shell con sidebar en escritorio y barra inferior en el teléfono (`AppShell`, nuevo en `@bv/ui`), guard de rol (solo owner/admin; el atleta que entra por error ve una explicación, no un 403) y **onboarding del dueño**: crear el gimnasio, una clase y un pack —los dos últimos salteables— y el código de organización al final con el mensaje de invitación listo para copiar. **Clientes** (F3-05) ya opera: lista con `DataTable` (tabla en escritorio, cards abajo de 768px), búsqueda server-side con debounce, filtros por estado, alta manual y ficha con packs, asignación con el pago registrado, anulación con motivo, baja/reactivación e invitación al portapapeles. El resto son placeholders que dicen en qué tarea llegan (F3-06..F3-11).
 
 **FE de agenda (`apps/schedule`, "BV Agenda")** — PWA propia del atleta: shell con bottom-nav de 4 secciones (Grilla, Mis reservas, Saldo, Cuenta), auth y join heredados de `apps/cross`, SSO por cookie compartida verificado a mano. **La grilla reserva de verdad** (F4-04): semana navegable con el horizonte como límite, cards con los 6 estados, saldo en el header y confirmación que dice de qué pack sale el crédito. **Mis reservas** (F4-05) muestra la ventana de cancelación antes del error ("Podés cancelar hasta las 16:00"), avisa si el crédito vuelve a un pack vencido y permite cambiar de horario (cancelar + volver a la grilla en ese día). **Saldo** (F4-06) separa activos e historial, marca cuál se consume primero y cuál todavía no arrancó.
 
@@ -64,6 +64,8 @@ Las que no estaban en los docs de diseño y se resolvieron al implementar:
 | Ventana de cancelación en el cliente | Se calcula en el FE (`cancellationDeadline`, espejo de la del servidor) | El servidor sigue siendo la autoridad y re-valida; el cálculo cliente existe para **decir la hora límite antes** de que el atleta se coma un 409. Si los relojes discrepan, gana el 409 y la pantalla se recarga |
 | Atleta que abre el CRM | Pantalla que lo explica, **no** onboarding | Mandarlo al wizard le crearía un gimnasio sin querer. Solo quien no tiene ninguna membresía cae en el onboarding (F3-04) |
 | `AppShell` y el router | El shell recibe `currentPath` y un `renderLink`; no importa react-router | Queda testeable sin montar rutas y reutilizable por cualquier app admin. El `active` viaja al link para que ponga `aria-current` |
+| Saldo del cliente en la tabla | **No** por fila: se ve al entrar a la ficha | Traer los packs de cada cliente en la lista serían N+1 requests en la pantalla que más se abre. La columna quedó para la última reserva (F4) |
+| Orden del `DataTable` | Client-side, **de la página cargada** | Ordenar el total exige que el servidor pagine ordenado; para listas de gimnasio no compensa. Se avisa en el `title` del encabezado |
 | CRM como PWA | **No** | Se usa desde el mostrador o el teléfono del dueño, siempre con conexión. Un service worker en una app que cambia seguido es un problema de despliegue, no una mejora |
 | Password en la migración v1→v2 | No se migra el hash: se crea una **aleatoria** y el dueño usa "olvidé mi contraseña" | Cambia el esquema de identidad (alias → email) |
 | DST con hora local inexistente | Se usa el resultado determinista de la librería (sesión corrida) | Preferible a dejar un hueco silencioso en la grilla |
@@ -89,7 +91,7 @@ Las que no estaban en los docs de diseño y se resolvieron al implementar:
 
 ### Próximas tareas sin bloqueo humano
 
-- **F3-05..F3-11** — las secciones del CRM, ahora que el shell y el onboarding están. Son independientes entre sí: se pueden tomar en cualquier orden.
+- **F3-06..F3-11** — el resto de las secciones del CRM. Son independientes entre sí: se pueden tomar en cualquier orden.
 - F4-07 y F3-12 (deploys) están bloqueados por F1-12; F4-08 (E2E) conviene después del deploy.
 - **F3-04+** — el CRM (frontend): scaffolding, AppShell, secciones de clientes/clases/packs.
 

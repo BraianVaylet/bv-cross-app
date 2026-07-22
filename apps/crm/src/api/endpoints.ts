@@ -1,12 +1,17 @@
 import type {
+  AssignmentDto,
+  CreateAssignmentBody,
+  CreateMemberBody,
   CreateOrgBody,
   CreatePackBody,
   CreateTemplateBody,
   LoginResponseDto,
+  MemberDto,
   MembershipSummaryDto,
   OrgDto,
   PackDto,
   TemplateDto,
+  UpdateMemberBody,
   UpdateOrgBody,
   UserDto,
 } from '@bv/contracts';
@@ -60,6 +65,37 @@ export const api = {
       request<{ membership: MembershipSummaryDto }>('/api/v1/orgs/join', {
         method: 'POST',
         body: { code },
+      }),
+  },
+  members: {
+    list: (params: { q?: string; status?: string; after?: string; limit?: number } = {}) => {
+      const query = new URLSearchParams();
+      if (params.q) query.set('q', params.q);
+      if (params.status) query.set('status', params.status);
+      if (params.after) query.set('after', params.after);
+      query.set('limit', String(params.limit ?? 25));
+      return request<{ items: MemberDto[]; nextCursor: string | null }>(
+        `/api/v1/members?${query.toString()}`,
+      );
+    },
+    get: (id: string) => request<{ member: MemberDto }>(`/api/v1/members/${id}`),
+    create: (body: CreateMemberBody) =>
+      request<{ member: MemberDto }>('/api/v1/members', { method: 'POST', body }),
+    update: (id: string, body: UpdateMemberBody) =>
+      request<{ member: MemberDto }>(`/api/v1/members/${id}`, { method: 'PATCH', body }),
+    assignments: (id: string) =>
+      request<{ items: AssignmentDto[] }>(`/api/v1/members/${id}/assignments`),
+    assign: (id: string, body: CreateAssignmentBody) =>
+      request<{ assignment: AssignmentDto }>(`/api/v1/members/${id}/assignments`, {
+        method: 'POST',
+        body,
+      }),
+  },
+  assignments: {
+    cancel: (id: string, reason: string) =>
+      request<{ assignment: AssignmentDto }>(`/api/v1/assignments/${id}/cancel`, {
+        method: 'POST',
+        body: { reason },
       }),
   },
   templates: {

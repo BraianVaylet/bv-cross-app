@@ -5,6 +5,8 @@ import { AdminRoute, AuthedRoute, PublicOnlyRoute } from './auth/guards';
 import { CrmLayout } from './components/CrmLayout';
 import { ErrorBoundary } from './components/ErrorBoundary';
 import { Account } from './pages/Account';
+import { ClientDetail } from './pages/ClientDetail';
+import { Clients } from './pages/Clients';
 import { Forgot } from './pages/Forgot';
 import { Login } from './pages/Login';
 import { NoAccess } from './pages/NoAccess';
@@ -40,11 +42,8 @@ export function App() {
               <Route element={<AdminRoute />}>
                 <Route element={<CrmLayout />}>
                   <Route path="/" element={<Placeholder title="Dashboard" task="F3-10" />} />
-                  <Route path="/clients" element={<Placeholder title="Clientes" task="F3-05" />} />
-                  <Route
-                    path="/clients/:id"
-                    element={<Placeholder title="Ficha del cliente" task="F3-05" />}
-                  />
+                  <Route path="/clients" element={<Clients />} />
+                  <Route path="/clients/:id" element={<ClientDetail />} />
                   <Route path="/classes" element={<Placeholder title="Clases" task="F3-06" />} />
                   <Route path="/packs" element={<Placeholder title="Packs" task="F3-07" />} />
                   <Route

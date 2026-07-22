@@ -96,6 +96,49 @@ export function dayLabel(ymd: string): { weekday: string; day: string } {
 }
 
 /**
+ * Instante límite para cancelar (RN-08). Espeja EXACTAMENTE la regla del
+ * servidor (`apps/api/src/modules/bookings/booking-service.ts`): el servidor
+ * es la autoridad y re-valida siempre; esto existe para poder decir "podés
+ * cancelar hasta las 16:00" ANTES de que el atleta se coma un 409.
+ */
+export function cancellationDeadline(startsAt: string | Date, windowHours: number): Date {
+  return new Date(toDate(startsAt).getTime() - windowHours * 3_600_000);
+}
+
+/** Regla `>=` de F4-01: en el límite exacto todavía se puede cancelar. */
+export function isCancellable(
+  startsAt: string | Date,
+  windowHours: number,
+  now: Date = new Date(),
+): boolean {
+  return now.getTime() <= cancellationDeadline(startsAt, windowHours).getTime();
+}
+
+/**
+ * Días de calendario (en la tz de la org) entre hoy y una fecha: positivo a
+ * futuro, negativo a pasado. Se cuenta por DÍA y no por horas, que es como lo
+ * cuenta la gente: algo que vence mañana a las 2 AM "vence mañana".
+ */
+export function daysFromToday(instant: string | Date, timeZone: string, now: Date = new Date()): number {
+  return daysBetweenYmd(todayInTz(timeZone, now), ymdInTz(instant, timeZone));
+}
+
+/** "vence hoy" · "vence mañana" · "en 12 días" · "venció hace 3 días". */
+export function expiryLabel(instant: string | Date, timeZone: string, now: Date = new Date()): string {
+  const days = daysFromToday(instant, timeZone, now);
+  if (days === 0) return 'vence hoy';
+  if (days === 1) return 'vence mañana';
+  if (days === -1) return 'venció ayer';
+  if (days > 1) return `en ${String(days)} días`;
+  return `venció hace ${String(-days)} días`;
+}
+
+/** Fecha corta legible: `01/08`. */
+export function shortDate(instant: string | Date, timeZone: string): string {
+  return ymdInTz(instant, timeZone).slice(5).split('-').reverse().join('/');
+}
+
+/**
  * Agrupa por día de calendario DE LA ORG. Acá vive el caso que rompe todo si
  * se usa la fecha del dispositivo: una clase de las 23:30 en Buenos Aires es
  * `02:30Z` del día siguiente — pertenece al día anterior para el atleta.

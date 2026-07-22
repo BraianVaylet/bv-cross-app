@@ -4,6 +4,8 @@ export type { ButtonProps, ButtonSize, ButtonVariant } from './components/Button
 export { FieldShell, Input, Select, Textarea, inputCx } from './components/Field.js';
 export type { InputProps, SelectProps, TextareaProps } from './components/Field.js';
 export { Card, EmptyState, ErrorBanner, Skeleton } from './components/Card.js';
+export { Badge } from './components/Badge.js';
+export type { BadgeTone } from './components/Badge.js';
 export { Chip } from './components/Chip.js';
 export type { ChipProps } from './components/Chip.js';
 export { Segmented } from './components/Segmented.js';

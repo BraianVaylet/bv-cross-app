@@ -1,9 +1,13 @@
 import { describe, expect, it } from 'vitest';
 import {
   addDaysYmd,
+  cancellationDeadline,
   dayLabel,
   daysBetweenYmd,
+  expiryLabel,
   groupByDayInTz,
+  isCancellable,
+  shortDate,
   startOfWeekYmd,
   timeInTz,
   todayInTz,
@@ -46,6 +50,50 @@ describe('agendaTime: la hora es la del gimnasio, no la del teléfono', () => {
     const now = new Date('2026-07-23T02:30:00.000Z');
     expect(todayInTz(AR, now)).toBe('2026-07-22');
     expect(todayInTz('UTC', now)).toBe('2026-07-23');
+  });
+});
+
+describe('agendaTime: ventana de cancelación (RN-08, espejo del servidor)', () => {
+  const clase = '2026-07-22T21:00:00.000Z'; // 18:00 AR
+
+  it('ventana de 2 h sobre una clase de 18:00 AR → límite 16:00 AR', () => {
+    const deadline = cancellationDeadline(clase, 2);
+    expect(deadline.toISOString()).toBe('2026-07-22T19:00:00.000Z');
+    expect(timeInTz(deadline, AR)).toBe('16:00');
+  });
+
+  it('ventana 0 → el límite es el arranque de la clase', () => {
+    expect(cancellationDeadline(clase, 0).toISOString()).toBe(clase);
+  });
+
+  it('el borde exacto todavía cancela (regla `>=`, igual que la API)', () => {
+    const deadline = cancellationDeadline(clase, 2);
+    expect(isCancellable(clase, 2, deadline)).toBe(true);
+    expect(isCancellable(clase, 2, new Date(deadline.getTime() - 1))).toBe(true);
+    expect(isCancellable(clase, 2, new Date(deadline.getTime() + 1))).toBe(false);
+  });
+});
+
+describe('agendaTime: vencimientos en palabras', () => {
+  const AHORA = new Date('2026-07-22T15:00:00.000Z'); // 12:00 AR
+
+  it('hoy, mañana, ayer y los plurales', () => {
+    expect(expiryLabel('2026-07-22T23:00:00.000Z', AR, AHORA)).toBe('vence hoy');
+    expect(expiryLabel('2026-07-23T20:00:00.000Z', AR, AHORA)).toBe('vence mañana');
+    expect(expiryLabel('2026-07-21T20:00:00.000Z', AR, AHORA)).toBe('venció ayer');
+    expect(expiryLabel('2026-08-03T20:00:00.000Z', AR, AHORA)).toBe('en 12 días');
+    expect(expiryLabel('2026-07-19T20:00:00.000Z', AR, AHORA)).toBe('venció hace 3 días');
+  });
+
+  it('el borde se cuenta en la tz de la org, no en UTC', () => {
+    // 23:30 del 22 en AR es el 23 en UTC: para el atleta vence HOY.
+    expect(expiryLabel('2026-07-23T02:30:00.000Z', AR, AHORA)).toBe('vence hoy');
+    // El mismo instante, en Madrid, ya es mañana.
+    expect(expiryLabel('2026-07-23T02:30:00.000Z', MADRID, AHORA)).toBe('vence mañana');
+  });
+
+  it('fecha corta dd/mm en la tz de la org', () => {
+    expect(shortDate('2026-08-02T02:59:00.000Z', AR)).toBe('01/08');
   });
 });
 

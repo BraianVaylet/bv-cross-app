@@ -18,7 +18,7 @@ import {
   useToast,
 } from '@bv/ui';
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { ApiError } from '../api/client';
 import { api, errorMessage } from '../api/endpoints';
 import { useAuth } from '../auth/AuthContext';
@@ -40,8 +40,13 @@ export function Grid() {
   const horizonDays = org?.sessionGenerationDays ?? 14;
 
   const today = useMemo(() => todayInTz(timeZone), [timeZone]);
-  const [weekStart, setWeekStart] = useState(() => startOfWeekYmd(today));
-  const [selectedDay, setSelectedDay] = useState(today);
+  // `?day=` es el deep-link de "cambiar de horario" (F4-05): se cancela una
+  // reserva y se cae en la grilla parada en el día de esa clase.
+  const [search] = useSearchParams();
+  const requestedDay = search.get('day');
+  const initialDay = requestedDay && requestedDay >= today ? requestedDay : today;
+  const [weekStart, setWeekStart] = useState(() => startOfWeekYmd(initialDay));
+  const [selectedDay, setSelectedDay] = useState(initialDay);
   const days = useMemo(() => weekDays(weekStart), [weekStart]);
 
   const [sessions, setSessions] = useState<SessionDto[] | null>(null);

@@ -22,14 +22,14 @@ Los seis PRs encadenados (#30-#35) quedaron **cerrados sin mergear** al abrir el
 | **F1** API core | 11/12 | F1-12: deploy de la API — **necesita Atlas M0 + Railway creados por un humano** |
 | **F2** Migración bv-cross | 7/8 | F2-07: deploy del FE — depende de F1-12 |
 | **F3** CRM | 3/12 | F3-04..12: el CRM (frontend). **La API que F4 necesita (F3-01/02/03) ya está completa** |
-| **F4** Reservas | 4/8 | API entera + BV Agenda reservando de verdad (grilla semanal, saldo y confirmación). Falta F4-05 (mis reservas), F4-06 (saldo), deploy y E2E |
+| **F4** Reservas | 6/8 | **La app del atleta está completa**: reserva, cancela, cambia de horario y ve su saldo. Falta el deploy (F4-07, depende de F1-12) y los E2E (F4-08) |
 | **F5-F6** | — | No arrancadas |
 
 ### Lo que está implementado y funcionando
 
 **API (`apps/api`)** — auth completa (registro, verificación por email, login, refresh rotativo con detección de reuso, reset, cambio de password), multi-tenancy por `X-Org-Id`, organizaciones con joinCode, members (CRM), exercises (catálogo + personales), entries (RMs), schedule (templates + sesiones), packs, assignments y el `booking-service` transaccional (reservar, cancelar, cancelar la clase entera). Dos jobs en el scheduler: `expire-packs` y `materialize-sessions`.
 
-**FE de agenda (`apps/schedule`, "BV Agenda")** — PWA propia del atleta: shell con bottom-nav de 4 secciones (Grilla, Mis reservas, Saldo, Cuenta), auth y join heredados de `apps/cross`, SSO por cookie compartida verificado a mano. **La grilla reserva de verdad** (F4-04): semana navegable con el horizonte como límite, cards con los 6 estados, saldo en el header y confirmación que dice de qué pack sale el crédito. Mis reservas y Saldo siguen siendo placeholders (F4-05/06).
+**FE de agenda (`apps/schedule`, "BV Agenda")** — PWA propia del atleta: shell con bottom-nav de 4 secciones (Grilla, Mis reservas, Saldo, Cuenta), auth y join heredados de `apps/cross`, SSO por cookie compartida verificado a mano. **La grilla reserva de verdad** (F4-04): semana navegable con el horizonte como límite, cards con los 6 estados, saldo en el header y confirmación que dice de qué pack sale el crédito. **Mis reservas** (F4-05) muestra la ventana de cancelación antes del error ("Podés cancelar hasta las 16:00"), avisa si el crédito vuelve a un pack vencido y permite cambiar de horario (cancelar + volver a la grilla en ese día). **Saldo** (F4-06) separa activos e historial, marca cuál se consume primero y cuál todavía no arrancó.
 
 **FE de cargas (`apps/cross`)** — migrado de v1 al monorepo: auth nueva (token en memoria, refresh single-flight), join a organización, Home con catálogo + personales y búsqueda, detalle con la calculadora de cargas de v1, cuenta, PWA con prompt de actualización.
 
@@ -59,6 +59,7 @@ Las que no estaban en los docs de diseño y se resolvieron al implementar:
 | Tz y horizonte en el FE | Viajan en `membershipSummaryDto` (`timezone`, `sessionGenerationDays`, `cancellationWindowHours`) | El FE tiene que pintar la hora del gimnasio y explicar los límites antes del error; pedirlos por separado sería un request extra en la pantalla más usada |
 | Reserva optimista | **No**: la card espera el 201 (spinner mientras tanto) | Con créditos de por medio, mostrar una reserva que después falla es peor que medio segundo de espera |
 | Fechas de agenda en los FEs | `@bv/ui` exporta `agendaTime` (Intl, sin dependencias) | Un solo lugar para agenda y CRM (F3-06). El servidor tiene el suyo (`lib/schedule-time.ts`): distinto runtime, misma regla — la hora es la del gimnasio |
+| Ventana de cancelación en el cliente | Se calcula en el FE (`cancellationDeadline`, espejo de la del servidor) | El servidor sigue siendo la autoridad y re-valida; el cálculo cliente existe para **decir la hora límite antes** de que el atleta se coma un 409. Si los relojes discrepan, gana el 409 y la pantalla se recarga |
 | Password en la migración v1→v2 | No se migra el hash: se crea una **aleatoria** y el dueño usa "olvidé mi contraseña" | Cambia el esquema de identidad (alias → email) |
 | DST con hora local inexistente | Se usa el resultado determinista de la librería (sesión corrida) | Preferible a dejar un hueco silencioso en la grilla |
 
@@ -82,7 +83,7 @@ Las que no estaban en los docs de diseño y se resolvieron al implementar:
 
 ### Próximas tareas sin bloqueo humano
 
-- **F4-05 / F4-06** — Mis reservas (con la ventana de cancelación comunicada antes del error) y la pantalla de Saldo. Los datos ya viajan: `GET /me/bookings` y `GET /me/credits` están y la ventana llega en la membresía.
+- **F3-04+** es lo que queda con más peso: el CRM entero. F4-07 (deploy de la agenda) está bloqueado por F1-12 y F4-08 (E2E) conviene después del deploy.
 - **F3-04+** — el CRM (frontend): scaffolding, AppShell, secciones de clientes/clases/packs.
 
 ### Bloqueadas por infraestructura (humano)

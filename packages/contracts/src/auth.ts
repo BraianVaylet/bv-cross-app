@@ -43,6 +43,15 @@ export const membershipSummaryDto = z
     orgSlug: z.string(),
     role,
     status: membershipStatus,
+    /**
+     * Ajustes de la org que el FE necesita para MOSTRAR bien (F4-04/05):
+     * las horas se pintan en la tz del gimnasio y nunca en la del teléfono, la
+     * grilla no navega más allá del horizonte, y la ventana de cancelación se
+     * comunica antes de que el atleta se coma el error.
+     */
+    timezone: z.string(), // IANA
+    sessionGenerationDays: z.number().int(),
+    cancellationWindowHours: z.number().int(),
   })
   .strict();
 

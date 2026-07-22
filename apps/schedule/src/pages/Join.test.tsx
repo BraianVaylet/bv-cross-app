@@ -61,7 +61,7 @@ const submit = () => fireEvent.click(screen.getByRole('button', { name: 'Unirme'
 
 beforeEach(() => {
   refreshMock.mockResolvedValue([
-    { id: 'm1', orgId: 'o1', orgName: 'Bahía Cross', orgSlug: 'bahia', role: 'athlete', status: 'active' },
+    { id: 'm1', orgId: 'o1', orgName: 'Bahía Cross', orgSlug: 'bahia', role: 'athlete', status: 'active', timezone: 'America/Argentina/Buenos_Aires', sessionGenerationDays: 14, cancellationWindowHours: 2 },
   ]);
 });
 

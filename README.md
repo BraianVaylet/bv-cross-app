@@ -45,10 +45,10 @@ Leé los documentos en este orden si sos nuevo en el proyecto:
 
 ## Estado del proyecto
 
-- **Fase actual**: F3 — CRM. F0 5/6 · F1 11/12 · F2 7/8 · F3 3/12 · F4 3/8 (ver [PLAN.md](PLAN.md)).
-- La **API** tiene auth, multi-tenancy, organizaciones, clientes, ejercicios, registros de carga, agenda, packs y asignaciones. El **FE de cargas** (`apps/cross`) está migrado y funcionando contra ella.
+- **Fase actual**: F3 — CRM. F0 5/6 · F1 11/12 · F2 7/8 · F3 3/12 · F4 4/8 (ver [PLAN.md](PLAN.md)).
+- La **API** está completa hasta reservas: auth, multi-tenancy, organizaciones, clientes, ejercicios, registros de carga, agenda, packs, asignaciones y el booking-service transaccional con sus endpoints. El **FE de cargas** (`apps/cross`) está migrado y **BV Agenda** (`apps/schedule`) ya reserva contra la API real.
 - Lo que falta para el go-live de F2 es **infraestructura**: crear Atlas + Railway (F1-12) desbloquea los deploys.
-- **Ojo**: F2-08 y los módulos de F3 todavía viven en PRs abiertos, no en `main`. El detalle de qué está dónde, con el orden de merge, está en la [bitácora](docs/09-bitacora.md).
+- Qué hay en `main`, qué está en PRs y las trampas conocidas: [bitácora](docs/09-bitacora.md).
 - **bv-cross v1**: en producción (Railway), un solo usuario, SQLite. Sigue operativa hasta que la v2 la reemplace.
 
 ## Convenciones de este repo

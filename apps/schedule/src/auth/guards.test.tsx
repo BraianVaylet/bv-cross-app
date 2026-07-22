@@ -36,6 +36,9 @@ const membership = (orgId: string, status: 'active' | 'invited'): MembershipSumm
   orgSlug: `box-${orgId.slice(-2)}`,
   role: 'athlete',
   status,
+  timezone: 'America/Argentina/Buenos_Aires',
+  sessionGenerationDays: 14,
+  cancellationWindowHours: 2,
 });
 
 function renderAt(path: string) {

@@ -101,7 +101,12 @@ export async function listMembershipSummaries(userId: ObjectId): Promise<Members
       orgId: ObjectId;
       role: MembershipSummaryDto['role'];
       status: MembershipSummaryDto['status'];
-      org: { name: string; slug: string };
+      org: {
+        name: string;
+        slug: string;
+        timezone: string;
+        settings: { sessionGenerationDays: number; cancellationWindowHours: number };
+      };
     }>([
       { $match: { userId, status: { $in: ['active', 'invited'] } } },
       {
@@ -113,7 +118,19 @@ export async function listMembershipSummaries(userId: ObjectId): Promise<Members
         },
       },
       { $unwind: '$org' },
-      { $project: { orgId: 1, role: 1, status: 1, 'org.name': 1, 'org.slug': 1 } },
+      {
+        $project: {
+          orgId: 1,
+          role: 1,
+          status: 1,
+          'org.name': 1,
+          'org.slug': 1,
+          // Los FEs pintan horas y límites con estos tres (F4-04/05).
+          'org.timezone': 1,
+          'org.settings.sessionGenerationDays': 1,
+          'org.settings.cancellationWindowHours': 1,
+        },
+      },
     ])
     .toArray();
   return rows.map((r) => ({
@@ -123,5 +140,8 @@ export async function listMembershipSummaries(userId: ObjectId): Promise<Members
     orgSlug: r.org.slug,
     role: r.role,
     status: r.status,
+    timezone: r.org.timezone,
+    sessionGenerationDays: r.org.settings.sessionGenerationDays,
+    cancellationWindowHours: r.org.settings.cancellationWindowHours,
   }));
 }

@@ -7,6 +7,9 @@ const membership = (orgId: string, status: MembershipSummaryDto['status'] = 'act
   orgId,
   orgName: `Org ${orgId.slice(-2)}`,
   orgSlug: `org-${orgId.slice(-2)}`,
+  timezone: 'America/Argentina/Buenos_Aires',
+  sessionGenerationDays: 14,
+  cancellationWindowHours: 2,
   role: 'athlete',
   status,
 });

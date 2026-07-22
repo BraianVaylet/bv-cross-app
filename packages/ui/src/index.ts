@@ -13,3 +13,17 @@ export { ToastProvider, useToast } from './components/Toast.js';
 export type { ToastVariant } from './components/Toast.js';
 export { Logo } from './components/Logo.js';
 export * from './components/Icons.js';
+// Agenda (F4-04): grilla semanal, card de clase y saldo. La aritmética de
+// fechas se exporta desde acá para que agenda y CRM usen la misma (F3-06).
+export { WeekGrid } from './components/WeekGrid.js';
+export type { WeekGridProps } from './components/WeekGrid.js';
+export {
+  SessionCard,
+  sessionState,
+  isSelectable,
+  ALMOST_FULL_RATIO,
+} from './components/SessionCard.js';
+export type { SessionCardProps, SessionLike, SessionState } from './components/SessionCard.js';
+export { CreditBadge } from './components/CreditBadge.js';
+export type { CreditBadgeProps } from './components/CreditBadge.js';
+export * from './lib/agendaTime.js';

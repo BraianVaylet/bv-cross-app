@@ -13,7 +13,7 @@ vi.mock('../api/endpoints', () => ({
 vi.mock('../auth/AuthContext', () => ({
   useAuth: () => ({
     user: { id: 'u1', email: 'a@b.co', name: 'Ana', emailVerified: true },
-    memberships: [{ id: 'm1', orgId: 'o1', orgName: 'Bahía Cross', orgSlug: 'bahia', role: 'athlete', status: 'active' }],
+    memberships: [{ id: 'm1', orgId: 'o1', orgName: 'Bahía Cross', orgSlug: 'bahia', role: 'athlete', status: 'active', timezone: 'America/Argentina/Buenos_Aires', sessionGenerationDays: 14, cancellationWindowHours: 2 }],
     activeOrgId: 'o1',
   }),
 }));

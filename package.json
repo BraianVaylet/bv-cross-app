@@ -16,7 +16,7 @@
     "audit:deps": "pnpm audit --prod --audit-level=high"
   },
   "devDependencies": {
-    "prettier": "^3.4.2",
-    "turbo": "^2.3.3"
+    "prettier": "^3.9.6",
+    "turbo": "^2.10.6"
   }
 }

@@ -1,5 +1,12 @@
 @import "tailwindcss";
 
+/* Tailwind v4 no mira dentro de node_modules, y `@bv/ui` entra por ahí (symlink
+   del workspace). Sin esto, las clases que SOLO viven en los componentes del
+   design system —el `hidden lg:flex` de la sidebar del AppShell, por ejemplo—
+   no se generan y el componente se ve roto en la app que lo consume. Se declara
+   acá, en el CSS que importan las tres apps, para no repetirlo en cada una. */
+@source "./";
+
 @custom-variant dark (&:where(.dark, .dark *));
 
 /* ====== Tokens semánticos (estética cálida — docs/04-design-system.md) ======

@@ -91,6 +91,33 @@ export function findRefreshTokenByHash(tokenHash: string): Promise<RefreshTokenD
   return refreshTokens().findOne({ tokenHash });
 }
 
+export function findRefreshTokenById(id: ObjectId): Promise<RefreshTokenDoc | null> {
+  return refreshTokens().findOne({ _id: id });
+}
+
+/**
+ * Ventana de gracia para refresh concurrentes (F4-03).
+ *
+ * El SSO por cookie de apex hace que las tres apps compartan el mismo refresh
+ * token: si el atleta abre bv-cross y BV Agenda a la vez, las dos mandan la
+ * MISMA cookie al mismo tiempo. Una rota primero y la otra llega con un token
+ * recién revocado — sin gracia eso se lee como robo y se cae la familia
+ * entera, dejando al usuario afuera de todo por usar bien la app.
+ *
+ * Por eso la gracia se limita a lo que un robo no puede fingir barato: el
+ * token tiene que haber sido revocado POR UNA ROTACIÓN (`replacedBy`), hace
+ * muy poco, y su sucesor tiene que seguir vivo. Un token revocado por logout
+ * o por reuso no tiene `replacedBy` y sigue cayendo como antes.
+ */
+export const REFRESH_GRACE_MS = 30_000;
+
+export async function isConcurrentRefresh(doc: RefreshTokenDoc, now = new Date()): Promise<boolean> {
+  if (!doc.replacedBy || !doc.revokedAt) return false;
+  if (now.getTime() - doc.revokedAt.getTime() > REFRESH_GRACE_MS) return false;
+  const successor = await findRefreshTokenById(doc.replacedBy);
+  return successor !== null && successor.revokedAt === undefined;
+}
+
 /** Revoca todos los tokens vivos de una familia (reuso detectado o logout). */
 export async function revokeFamily(familyId: ObjectId): Promise<void> {
   await refreshTokens().updateMany(
@@ -126,11 +153,14 @@ export async function rotateRefreshToken(
 ): Promise<{ token: string; expiresAt: Date }> {
   const token = generateToken();
   const expiresAt = new Date(Date.now() + config.REFRESH_TOKEN_TTL_DAYS * 24 * 60 * 60 * 1000);
+  const successorId = new ObjectId();
   await getClient().withSession((session) =>
     session.withTransaction(async () => {
       const marked = await refreshTokens().updateOne(
         { _id: current._id, revokedAt: { $exists: false } },
-        { $set: { revokedAt: new Date() } },
+        // `replacedBy` deja el rastro de que esto fue una rotación normal, no
+        // un logout ni una revocación por reuso (lo usa la ventana de gracia).
+        { $set: { revokedAt: new Date(), replacedBy: successorId } },
         { session },
       );
       // Carrera entre dos refresh concurrentes: solo uno gana la marca.
@@ -139,7 +169,7 @@ export async function rotateRefreshToken(
       }
       await refreshTokens().insertOne(
         {
-          _id: new ObjectId(),
+          _id: successorId,
           userId: current.userId,
           tokenHash: hashToken(token),
           familyId: current.familyId,

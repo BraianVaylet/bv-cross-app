@@ -93,6 +93,9 @@ function toMembershipSummary(m: MembershipDoc, org: OrganizationDoc): Membership
     orgSlug: org.slug,
     role: m.role,
     status: m.status,
+    timezone: org.timezone,
+    sessionGenerationDays: org.settings.sessionGenerationDays,
+    cancellationWindowHours: org.settings.cancellationWindowHours,
   };
 }
 

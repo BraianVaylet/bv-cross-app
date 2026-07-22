@@ -17,8 +17,8 @@
 | F0 | Fundaciones (monorepo + estándares) | 6 | [docs/tasks/F0.md](docs/tasks/F0.md) | 🔨 5/6 (F0-06 espera decisión de dominio — humano) |
 | F1 | API core: auth + organizaciones | 12 | [docs/tasks/F1.md](docs/tasks/F1.md) | 🔨 11/12 |
 | F2 | Migración de bv-cross (cargas) | 8 | [docs/tasks/F2.md](docs/tasks/F2.md) | 🔨 7/8 |
-| F3 | CRM: gestión del gimnasio | 12 | [docs/tasks/F3.md](docs/tasks/F3.md) | 🔨 3/12 |
-| F4 | bv-cross-schedule: reservas | 8 | [docs/tasks/F4.md](docs/tasks/F4.md) | 🔨 2/8 |
+| F3 | CRM: gestión del gimnasio | 12 | [docs/tasks/F3.md](docs/tasks/F3.md) | 🔨 4/12 |
+| F4 | bv-cross-schedule: reservas | 8 | [docs/tasks/F4.md](docs/tasks/F4.md) | 🔨 6/8 |
 | F5 | Estadísticas + hardening | 7 | [docs/tasks/F5.md](docs/tasks/F5.md) | — |
 | F6 | Go-live | 5 | [docs/tasks/F6.md](docs/tasks/F6.md) | — |
 
@@ -64,7 +64,7 @@
 - [x] **F3-01** ⛔ 🔴 Fable — Módulo `schedule`: templates + materialización con timezones + sesiones (la tarea de fechas)
 - [x] **F3-02** ⛔ 🟡 Opus — Módulo `packs`: catálogo con matriz de edición RN-14 y archivado
 - [x] **F3-03** ⛔ 🔴 Fable — Módulo `assignments`: snapshot inmutable, vencimiento en tz org, pago manual
-- [ ] **F3-04** ⛔ 🟡 Opus — CRM scaffolding + `AppShell` responsive + onboarding wizard (F1 del Funcional)
+- [x] **F3-04** ⛔ 🟡 Opus — CRM scaffolding + `AppShell` responsive + onboarding wizard (F1 del Funcional)
 - [ ] **F3-05** 🟡 Opus — Sección Clientes: `DataTable`, ficha, asignar pack, invitación por WhatsApp
 - [ ] **F3-06** 🟡 Opus — Sección Clases: grilla de templates (duplicar día) + calendario de sesiones + anotados
 - [ ] **F3-07** 🟢 Sonnet — Sección Packs: matriz RN-14 comunicada en la UI + historial de precios
@@ -78,10 +78,10 @@
 
 - [x] **F4-01** ⛔ 🔴 Fable — `booking-service` transaccional: book/cancel/cancel-session (suite de concurrencia 14 casos, cobertura ≥90%)
 - [x] **F4-02** ⛔ 🟡 Opus — Endpoints de bookings + `GET /me/credits` (respuestas con saldo para UI sin refetch)
-- [ ] **F4-03** ⛔ 🟢 Sonnet — Scaffolding `apps/schedule` (PWA propia + verificación del SSO)
-- [ ] **F4-04** 🔴 Opus — Grilla semanal + flujo de reserva (`WeekGrid`/`SessionCard`/`CreditBadge`; <10 s y ≤3 taps)
-- [ ] **F4-05** 🟡 Sonnet — Mis reservas + cancelación (ventana comunicada antes del error)
-- [ ] **F4-06** 🟢 Sonnet — Pantalla de saldo (packs FIFO, estados, usableFrom)
+- [x] **F4-03** ⛔ 🟢 Sonnet — Scaffolding `apps/schedule` (PWA propia + verificación del SSO)
+- [x] **F4-04** 🔴 Opus — Grilla semanal + flujo de reserva (`WeekGrid`/`SessionCard`/`CreditBadge`; <10 s y ≤3 taps)
+- [x] **F4-05** 🟡 Sonnet — Mis reservas + cancelación (ventana comunicada antes del error)
+- [x] **F4-06** 🟢 Sonnet — Pantalla de saldo (packs FIFO, estados, usableFrom)
 - [ ] **F4-07** 🟢 Sonnet — Deploy de bv-cross-schedule (smoke: reserva reflejada en el CRM)
 - [ ] **F4-08** 🟡 Opus — E2E Playwright de los 4 flujos críticos (5 corridas verdes sin flakes)
 

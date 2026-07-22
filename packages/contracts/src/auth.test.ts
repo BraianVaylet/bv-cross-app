@@ -80,6 +80,9 @@ describe('userDto / membershipSummaryDto / loginResponseDto', () => {
     orgSlug: 'box',
     role: 'athlete',
     status: 'active',
+    timezone: 'America/Argentina/Buenos_Aires',
+    sessionGenerationDays: 14,
+    cancellationWindowHours: 2,
   };
 
   it('acepta formas válidas', () => {

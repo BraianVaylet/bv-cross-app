@@ -10,12 +10,18 @@ const ICON_FULL =
 const ICON_MINI =
   'M 404.324 78.956 L 404.324 73.193 C 404.324 65.949 398.311 60.021 390.961 60.021 C 383.612 60.021 377.598 65.949 377.598 73.193 L 377.598 78.956 C 374.424 82.249 372.587 86.529 372.587 91.304 C 372.587 97.067 375.26 102.335 379.937 105.793 C 380.271 105.957 380.605 106.122 380.939 106.122 L 400.984 106.122 C 401.318 106.122 401.652 105.957 401.986 105.793 C 406.663 102.335 409.336 97.067 409.336 91.304 C 409.336 86.529 407.498 82.084 404.324 78.956 Z M 380.939 76.157 L 380.939 73.193 C 380.939 67.76 385.449 63.314 390.961 63.314 C 396.474 63.314 400.984 67.76 400.984 73.193 L 400.984 76.157 C 398.144 74.346 394.636 73.193 390.961 73.193 C 387.286 73.193 383.779 74.346 380.939 76.157 Z M 400.984 89.822 C 400.817 89.822 400.65 89.822 400.483 89.822 C 399.814 89.822 399.146 89.328 398.812 88.67 C 398.311 86.859 396.975 85.377 395.471 84.389 C 394.636 83.895 394.469 82.907 394.97 82.084 C 395.471 81.261 396.474 81.096 397.309 81.59 C 399.48 83.072 401.151 85.212 401.986 87.682 C 402.32 88.67 401.819 89.493 400.984 89.822 Z';
 
-export function Logo({ size = 'md' }: { size?: 'md' | 'lg' }) {
+/**
+ * `label` sirve a las apps hermanas (BV Agenda, CRM): la marca es la misma
+ * familia, pero el lector de pantalla tiene que nombrar la app correcta.
+ * El wordmark completo (`size="lg"`) dice "BV cross": las otras apps usan
+ * el compacto.
+ */
+export function Logo({ size = 'md', label = 'BV Cross' }: { size?: 'md' | 'lg'; label?: string }) {
   if (size === 'lg') {
     return (
       <svg
         role="img"
-        aria-label="BV Cross"
+        aria-label={label}
         viewBox="0 0 233.631 116.089"
         className="h-14 w-auto text-ink"
         xmlns="http://www.w3.org/2000/svg"
@@ -51,7 +57,7 @@ export function Logo({ size = 'md' }: { size?: 'md' | 'lg' }) {
   return (
     <svg
       role="img"
-      aria-label="BV Cross"
+      aria-label={label}
       viewBox="0 0 128.38 113.743"
       className="h-9 w-auto text-ink"
       xmlns="http://www.w3.org/2000/svg"

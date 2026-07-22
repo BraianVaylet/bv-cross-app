@@ -21,13 +21,17 @@ Los seis PRs encadenados (#30-#35) quedaron **cerrados sin mergear** al abrir el
 | **F0** Fundaciones | 5/6 | F0-06: comprar dominio (decisión humana; solo bloquea F6) |
 | **F1** API core | 11/12 | F1-12: deploy de la API — **necesita Atlas M0 + Railway creados por un humano** |
 | **F2** Migración bv-cross | 7/8 | F2-07: deploy del FE — depende de F1-12 |
-| **F3** CRM | 3/12 | F3-04..12: el CRM (frontend). **La API que F4 necesita (F3-01/02/03) ya está completa** |
-| **F4** Reservas | 2/8 | La API de reservas está entera (servicio + endpoints + saldo). Falta el FE: F4-03 scaffolding de `apps/schedule` en adelante |
+| **F3** CRM | 4/12 | `apps/crm` navegable con onboarding real. Faltan las secciones: F3-05..F3-12 |
+| **F4** Reservas | 6/8 | **La app del atleta está completa**: reserva, cancela, cambia de horario y ve su saldo. Falta el deploy (F4-07, depende de F1-12) y los E2E (F4-08) |
 | **F5-F6** | — | No arrancadas |
 
 ### Lo que está implementado y funcionando
 
 **API (`apps/api`)** — auth completa (registro, verificación por email, login, refresh rotativo con detección de reuso, reset, cambio de password), multi-tenancy por `X-Org-Id`, organizaciones con joinCode, members (CRM), exercises (catálogo + personales), entries (RMs), schedule (templates + sesiones), packs, assignments y el `booking-service` transaccional (reservar, cancelar, cancelar la clase entera). Dos jobs en el scheduler: `expire-packs` y `materialize-sessions`.
+
+**CRM (`apps/crm`, "BV CRM")** — shell con sidebar en escritorio y barra inferior en el teléfono (`AppShell`, nuevo en `@bv/ui`), guard de rol (solo owner/admin; el atleta que entra por error ve una explicación, no un 403) y **onboarding del dueño**: crear el gimnasio, una clase y un pack —los dos últimos salteables— y el código de organización al final con el mensaje de invitación listo para copiar. Las secciones son placeholders que dicen en qué tarea llegan (F3-05..F3-11).
+
+**FE de agenda (`apps/schedule`, "BV Agenda")** — PWA propia del atleta: shell con bottom-nav de 4 secciones (Grilla, Mis reservas, Saldo, Cuenta), auth y join heredados de `apps/cross`, SSO por cookie compartida verificado a mano. **La grilla reserva de verdad** (F4-04): semana navegable con el horizonte como límite, cards con los 6 estados, saldo en el header y confirmación que dice de qué pack sale el crédito. **Mis reservas** (F4-05) muestra la ventana de cancelación antes del error ("Podés cancelar hasta las 16:00"), avisa si el crédito vuelve a un pack vencido y permite cambiar de horario (cancelar + volver a la grilla en ese día). **Saldo** (F4-06) separa activos e historial, marca cuál se consume primero y cuál todavía no arrancó.
 
 **FE de cargas (`apps/cross`)** — migrado de v1 al monorepo: auth nueva (token en memoria, refresh single-flight), join a organización, Home con catálogo + personales y búsqueda, detalle con la calculadora de cargas de v1, cuenta, PWA con prompt de actualización.
 
@@ -52,6 +56,15 @@ Las que no estaban en los docs de diseño y se resolvieron al implementar:
 | Borde exacto de la ventana RN-08 | Regla `>=` (cancelar justo en el límite se permite), probada como **función pura** (`isCancellable`) | El instante exacto no se puede provocar con el reloj real sin flakear, y falsear el clock cerca de Mongo rompe el driver |
 | Umbral de cobertura en `branches` | 90 en bookings, **80 en assignments** | Las ramas de assignments son spreads de campos opcionales: exigir 90 compra combinatoria de DTOs, no lógica probada |
 | Reservas en el seed | Se crean con el **booking-service real**, no con inserts | El seed nunca debe inventar un estado que la API no podría producir (además deja la transición RN-13 a `exhausted` visible en la demo) |
+| Refresh concurrente entre apps | **Ventana de gracia de 30 s** en la rotación (F4-03) | El SSO de apex hace que las apps compartan cookie: abrir dos a la vez presentaba el mismo token dos veces y la detección de reuso tumbaba la familia. Lo encontró la verificación del SSO, no un test |
+| Íconos de la PWA nueva | SVG (`any` + `maskable`), sin PNG | No hay rasterizador en el entorno; el manifest acepta SVG con `sizes: "any"`. Si aparece un caso de instalación que los pida, se generan |
+| Tz y horizonte en el FE | Viajan en `membershipSummaryDto` (`timezone`, `sessionGenerationDays`, `cancellationWindowHours`) | El FE tiene que pintar la hora del gimnasio y explicar los límites antes del error; pedirlos por separado sería un request extra en la pantalla más usada |
+| Reserva optimista | **No**: la card espera el 201 (spinner mientras tanto) | Con créditos de por medio, mostrar una reserva que después falla es peor que medio segundo de espera |
+| Fechas de agenda en los FEs | `@bv/ui` exporta `agendaTime` (Intl, sin dependencias) | Un solo lugar para agenda y CRM (F3-06). El servidor tiene el suyo (`lib/schedule-time.ts`): distinto runtime, misma regla — la hora es la del gimnasio |
+| Ventana de cancelación en el cliente | Se calcula en el FE (`cancellationDeadline`, espejo de la del servidor) | El servidor sigue siendo la autoridad y re-valida; el cálculo cliente existe para **decir la hora límite antes** de que el atleta se coma un 409. Si los relojes discrepan, gana el 409 y la pantalla se recarga |
+| Atleta que abre el CRM | Pantalla que lo explica, **no** onboarding | Mandarlo al wizard le crearía un gimnasio sin querer. Solo quien no tiene ninguna membresía cae en el onboarding (F3-04) |
+| `AppShell` y el router | El shell recibe `currentPath` y un `renderLink`; no importa react-router | Queda testeable sin montar rutas y reutilizable por cualquier app admin. El `active` viaja al link para que ponga `aria-current` |
+| CRM como PWA | **No** | Se usa desde el mostrador o el teléfono del dueño, siempre con conexión. Un service worker en una app que cambia seguido es un problema de despliegue, no una mejora |
 | Password en la migración v1→v2 | No se migra el hash: se crea una **aleatoria** y el dueño usa "olvidé mi contraseña" | Cambia el esquema de identidad (alias → email) |
 | DST con hora local inexistente | Se usa el resultado determinista de la librería (sesión corrida) | Preferible a dejar un hueco silencioso en la grilla |
 
@@ -59,6 +72,7 @@ Las que no estaban en los docs de diseño y se resolvieron al implementar:
 
 - **Mongo para verificar el FE**: hace falta un **replica set**, no un mongod standalone — la rotación de refresh tokens usa transacciones y falla con `Transaction numbers are only allowed on a replica set member`.
 - **CI flaky por `mongodb-memory-server`**: varios workers de vitest competían por descargar el binario y corrompían el lockfile. Resuelto con un **prewarm secuencial** (`apps/api/scripts/prewarm-mongo.mts`) + cache de `~/.cache/mongodb-binaries` en el workflow.
+- **Tailwind v4 no escanea `node_modules`**, y `@bv/ui` entra por ahí (symlink del workspace): las clases que solo viven en los componentes del design system no se generaban en la app que los consume. Se ve como un componente "roto" sin error de build — lo agarró la verificación en el navegador, no un test. Resuelto con `@source "./"` en `packages/ui/src/tokens.css`, el CSS que importan las tres apps.
 - **`osv-scanner` corta con CUALQUIER vulnerabilidad conocida**, sin umbral de severidad (a diferencia de `pnpm audit --audit-level=high`). El 21/07/26 apareció [GHSA-frvp-7c67-39w9](https://osv.dev/GHSA-frvp-7c67-39w9) en `@hono/node-server` 1.x (path traversal de `serve-static` en hosts Windows: no usamos `serve-static` y la API corre en Linux, impacto real nulo) y volteó el CI de todas las ramas. Se resolvió subiendo a `@hono/node-server@2`: `serve` y `getConnInfo` mantienen la firma — verificado levantando la API contra un Mongo efímero (`/healthz` 200 + login por la ruta rate-limited).
 - **`pnpm audit --prod` puede romperse de un día para el otro** por advisories nuevos en dependencias transitivas de `eslint` (que es dependency real de `@bv/config` porque publica los presets). Se arregla con `overrides` en `pnpm-workspace.yaml` — **acotando la major**: un `>=` puede saltar a una API incompatible (pasó con `brace-expansion`: `minimatch@3` murió con "expand is not a function").
 - **`vi.setSystemTime` expira los JWT del setup** (TTL 15 min): en tests con clock fijo hay que emitir un token fresco dentro del clock.
@@ -75,7 +89,8 @@ Las que no estaban en los docs de diseño y se resolvieron al implementar:
 
 ### Próximas tareas sin bloqueo humano
 
-- **F4-03** — scaffolding de `apps/schedule` (la PWA del atleta) y la verificación del SSO por cookie de apex. La API de reservas ya está completa: el FE puede arrancar.
+- **F3-05..F3-11** — las secciones del CRM, ahora que el shell y el onboarding están. Son independientes entre sí: se pueden tomar en cualquier orden.
+- F4-07 y F3-12 (deploys) están bloqueados por F1-12; F4-08 (E2E) conviene después del deploy.
 - **F3-04+** — el CRM (frontend): scaffolding, AppShell, secciones de clientes/clases/packs.
 
 ### Bloqueadas por infraestructura (humano)

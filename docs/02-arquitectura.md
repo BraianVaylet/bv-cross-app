@@ -228,7 +228,7 @@ Multirepo vuelve a evaluarse solo si aparecen equipos separados con permisos o c
 ### Flujo
 1. **Login** (`POST /api/v1/auth/login`): valida credenciales → emite **access token** (JWT firmado HS256, 15 min, claims: `userId`) + **refresh token** (opaco 256 bits, rotativo, 30 días) en cookie `httpOnly; Secure; SameSite=Lax; Domain=.<apex>; Path=/api/v1/auth`.
 2. El cliente guarda el access token **en memoria** (nunca localStorage — mitiga XSS) y lo manda como `Authorization: Bearer`.
-3. Al expirar (o al abrir la app), llama `POST /auth/refresh`: la cookie viaja sola → nuevo par access+refresh. **Rotación con detección de reuso**: si llega un refresh ya usado (familia `familyId`), se revoca toda la familia (posible robo).
+3. Al expirar (o al abrir la app), llama `POST /auth/refresh`: la cookie viaja sola → nuevo par access+refresh. **Rotación con detección de reuso**: si llega un refresh ya usado (familia `familyId`), se revoca toda la familia (posible robo). **Con una ventana de gracia de 30 s** (F4-03): como las tres apps comparten la cookie, abrir dos a la vez manda el mismo token dos veces y eso es uso legítimo, no robo — el segundo request recibe un access token nuevo y **no** toca la cookie. La gracia solo aplica si el token fue revocado *por una rotación* (`replacedBy`) y su sucesor sigue vivo: un token de logout, o uno de una cadena que ya avanzó, sigue tumbando la familia.
 4. **Selección de organización**: el access token identifica al *usuario*; la org activa viaja como header `X-Org-Id` en cada request. El middleware `tenantGuard` valida la membresía y cuelga `{ userId, orgId, role }` del contexto. Cambiar de org no requiere re-login (F7).
 
 ### Por qué funciona el SSO

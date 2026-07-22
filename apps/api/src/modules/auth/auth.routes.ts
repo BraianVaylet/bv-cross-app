@@ -86,9 +86,12 @@ export function authRoutes(config: Config, service: AuthService) {
   router.post('/refresh', limits.refresh, async (c) => {
     const token = getCookie(c, REFRESH_COOKIE_NAME);
     if (!token) throw new DomainError('TOKEN_INVALID', 'La sesión ya no es válida.');
-    const pair = await service.refresh(token, refreshMeta(c));
-    setRefreshCookie(c, pair.refreshToken);
-    return c.json({ accessToken: pair.accessToken });
+    const result = await service.refresh(token, refreshMeta(c));
+    // Sin `refreshToken` = refresh concurrente dentro de la gracia: la cookie
+    // buena la puso el request que ganó la rotación, pisarla sería volver a
+    // romper lo mismo que la gracia arregla.
+    if (result.refreshToken) setRefreshCookie(c, result.refreshToken);
+    return c.json({ accessToken: result.accessToken });
   });
 
   router.post('/logout', async (c) => {

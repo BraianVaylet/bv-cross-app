@@ -2,29 +2,17 @@
 
 > Registro de **hasta dónde llegó la implementación**, qué decisiones se tomaron sobre la marcha y qué trampas aparecieron. Los docs 00-08 describen el diseño (estable); este describe el avance (cambiante). El estado tarea por tarea vive en [PLAN.md](../PLAN.md).
 >
-> **Última actualización**: 2026-07-21.
+> **Última actualización**: 2026-07-22.
 
 ## 1. Dónde está cada cosa
 
-`main` contiene F0 (5/6), **F1-01..11 y F2-01..06** — entró con el PR consolidado #29. Lo que sigue vive en **5 PRs abiertos**, todos con CI verde.
+`main` contiene F0 (5/6), **F1-01..11 y F2-01..06** — entró con el PR consolidado #29. Todo lo pendiente viaja ahora en **un solo PR consolidado (#36, rama `feat/f3-f4-api`)**: F2-08 + F3-01/02/03 + F4-01/02.
 
-### PRs abiertos y orden de merge
+### Por qué un PR y no una pila
 
-```
-main
- ├─ #30  F2-08  migración v1→v2      (independiente)
- └─ #31  F3-01  schedule
-     └─ #32  F3-02  packs
-         └─ #33  F3-03  assignments
-             └─ #34  F4-01  booking-service
-                 └─ #35  F4-02  endpoints de bookings
-```
+Los seis PRs encadenados (#30-#35) quedaron **cerrados sin mergear** al abrir el consolidado: su contenido está íntegro acá. Una pila de 6 obliga a mergear en orden exacto, borrar cada rama para que GitHub retargetee la siguiente y aguantar que un advisory nuevo voltee el CI de las seis. Un PR se revisa por commits (la historia individual está intacta) y entra de una.
 
-**#30 y #31 salen de `main` y se pueden mergear en cualquier orden.** #32 a #35 están encadenados: mergear #31 → #32 → #33 → #34 → #35, borrando cada rama para que GitHub retargetee la siguiente.
-
-> El bump de `@hono/node-server` a 2.x (advisory del 21/07, ver §4) viaja en **#34**: hasta que ese entre, `osv-scanner` va a voltear el CI de `main`, #30 y #31-#33 si se los vuelve a correr.
-
-> #29 reemplazó un stack previo de 8 PRs (#19-#28) que quedaron **cerrados sin mergear**: su contenido está íntegro en `main`.
+> Es la segunda vez que pasa: #29 reemplazó un stack previo de 8 PRs (#19-#28) por el mismo motivo. **Conclusión para lo que viene: encadenar más de 2 o 3 PRs no compensa.**
 
 ## 2. Estado por fase
 
@@ -79,7 +67,7 @@ Las que no estaban en los docs de diseño y se resolvieron al implementar:
 
 ## 5. Cómo retomar
 
-1. **Mergear los PRs abiertos** siguiendo §1. Después de eso `main` refleja todo y PLAN.md queda al día (los contadores de F3 viajan en esos PRs).
+1. **Mergear el PR consolidado** (§1). Después de eso `main` refleja todo y PLAN.md queda al día. Abrir como mucho 2 o 3 PRs encadenados sobre lo que sigue: más que eso termina en otra consolidación.
 2. Antes de tomar una tarea, leer su spec completa en `docs/tasks/F*.md` — son el contrato (objetivo, casos de prueba, criterios de aceptación).
 3. **Todo endpoint nuevo se registra en `apps/api/src/route-policies.ts`** en el mismo PR, con su factory en `src/test/factories.ts` si recibe un `:id`. Si no, el build falla (por diseño).
 4. Si el módulo introduce datos, extender el seed (`src/seed.ts`) en el mismo PR.

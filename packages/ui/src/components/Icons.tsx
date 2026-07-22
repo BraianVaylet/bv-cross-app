@@ -148,3 +148,40 @@ export const ZapIcon = (p: IconProps) => (
     <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2" />
   </Icon>
 );
+
+// Navegación de las apps de agenda (F4-03) y del CRM.
+
+export const CalendarIcon = (p: IconProps) => (
+  <Icon {...p}>
+    <rect x="3" y="5" width="18" height="16" rx="2" />
+    <line x1="3" y1="10" x2="21" y2="10" />
+    <line x1="8" y1="3" x2="8" y2="7" />
+    <line x1="16" y1="3" x2="16" y2="7" />
+  </Icon>
+);
+
+export const ListIcon = (p: IconProps) => (
+  <Icon {...p}>
+    <line x1="9" y1="6" x2="20" y2="6" />
+    <line x1="9" y1="12" x2="20" y2="12" />
+    <line x1="9" y1="18" x2="20" y2="18" />
+    <circle cx="4.5" cy="6" r="1.2" />
+    <circle cx="4.5" cy="12" r="1.2" />
+    <circle cx="4.5" cy="18" r="1.2" />
+  </Icon>
+);
+
+export const WalletIcon = (p: IconProps) => (
+  <Icon {...p}>
+    <path d="M3 7a2 2 0 0 1 2-2h12a2 2 0 0 1 2 2" />
+    <rect x="3" y="7" width="18" height="12" rx="2" />
+    <circle cx="16.5" cy="13" r="1.2" />
+  </Icon>
+);
+
+export const UserIcon = (p: IconProps) => (
+  <Icon {...p}>
+    <circle cx="12" cy="8" r="4" />
+    <path d="M4 21c0-4 3.6-6 8-6s8 2 8 6" />
+  </Icon>
+);

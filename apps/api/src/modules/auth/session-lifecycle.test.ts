@@ -7,7 +7,7 @@ import type { EmailProvider, SendEmailInput } from '../../lib/email.js';
 import { logger } from '../../lib/logger.js';
 import { startTestDb, stopTestDb } from '../../test/mongo.js';
 import { testConfig } from '../../test/helpers.js';
-import { verifyAccessToken } from './token-service.js';
+import { REFRESH_GRACE_MS, verifyAccessToken } from './token-service.js';
 
 vi.mock('../../lib/crypto.js', async (importOriginal) => {
   const actual = await importOriginal<Record<string, unknown>>();
@@ -61,6 +61,17 @@ function refreshWith(token: string) {
   return post('refresh', undefined, { cookie: `refresh_token=${token}` });
 }
 
+/**
+ * Envejece la revocación de un token para salir de la ventana de gracia sin
+ * tocar el reloj del proceso (`vi.setSystemTime` vencería los JWT del setup).
+ */
+async function ageRevocation(token: string): Promise<void> {
+  await refreshTokens().updateOne(
+    { tokenHash: hashToken(token) },
+    { $set: { revokedAt: new Date(Date.now() - REFRESH_GRACE_MS - 1_000) } },
+  );
+}
+
 beforeAll(startTestDb, 120_000); // primera corrida descarga el binario de mongod
 afterAll(stopTestDb);
 
@@ -84,7 +95,10 @@ describe('refresh: rotación con detección de reuso', () => {
     expect(rotated).not.toBe(session.refresh);
     expect(first.headers.get('set-cookie')).toContain('Path=/api/v1/auth');
 
-    // Robo: el token viejo (ya rotado) se presenta de nuevo
+    // Robo: el token viejo se presenta de nuevo, ya fuera de la ventana de
+    // gracia (dentro de la gracia sería el caso legítimo de dos apps abiertas,
+    // ver el bloque de refresh concurrente más abajo).
+    await ageRevocation(session.refresh);
     const reuse = await refreshWith(session.refresh);
     expect(reuse.status).toBe(401);
     expect(
@@ -113,6 +127,52 @@ describe('refresh: rotación con detección de reuso', () => {
     const alive = mine.filter((d) => d.revokedAt === undefined);
     expect(alive).toHaveLength(1);
     expect(alive[0]?.tokenHash).toBe(hashToken(current));
+  });
+
+  it('dos apps abriendo a la vez comparten cookie: las dos entran y la familia sobrevive', async () => {
+    // El SSO de apex hace que bv-cross y BV Agenda manden el MISMO refresh
+    // token al mismo tiempo (F4-03). Sin ventana de gracia, la segunda se leía
+    // como robo y dejaba al atleta afuera de las dos apps.
+    const warnSpy = vi.spyOn(logger, 'warn');
+    const session = await createSession('sso@test.com');
+
+    const [a, b] = await Promise.all([refreshWith(session.refresh), refreshWith(session.refresh)]);
+    expect([a.status, b.status]).toEqual([200, 200]);
+
+    // Solo una respuesta trae cookie nueva: la otra no debe pisarla.
+    const cookies = [cookieValue(a), cookieValue(b)].filter((c) => c !== '');
+    expect(cookies).toHaveLength(1);
+    const rotated = cookies[0] ?? '';
+
+    // Las dos apps quedan con un access token usable.
+    for (const res of [a, b]) {
+      const { accessToken } = (await res.json()) as { accessToken: string };
+      const claims = await verifyAccessToken(accessToken, config);
+      expect(claims.exp - Math.floor(Date.now() / 1000)).toBeGreaterThan(0);
+    }
+
+    // Nada de "reuse detected" y la sesión sigue viva.
+    expect(
+      warnSpy.mock.calls.some(([, msg]) => typeof msg === 'string' && msg.includes('reuse')),
+    ).toBe(false);
+    expect((await refreshWith(rotated)).status).toBe(200);
+    warnSpy.mockRestore();
+  });
+
+  it('la gracia no tapa un robo real: cadena avanzada o token de un logout → 401', async () => {
+    // Cadena avanzada: el ladrón replica un token viejo mientras el dueño
+    // siguió usando la app. El sucesor ya está revocado → no hay gracia.
+    const session = await createSession('robo@test.com');
+    const first = await refreshWith(session.refresh);
+    const second = await refreshWith(cookieValue(first));
+    expect(second.status).toBe(200);
+    expect((await refreshWith(session.refresh)).status).toBe(401);
+
+    // Logout: el token revocado no tiene `replacedBy`, así que nunca entra en
+    // la gracia por más que se presente al instante.
+    const other = await createSession('logout-grace@test.com');
+    expect((await post('logout', undefined, { cookie: `refresh_token=${other.refresh}` })).status).toBe(204);
+    expect((await refreshWith(other.refresh)).status).toBe(401);
   });
 
   it('sin cookie o expirado → 401', async () => {

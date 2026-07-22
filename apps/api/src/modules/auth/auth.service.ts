@@ -33,6 +33,7 @@ import {
 } from './auth.repo.js';
 import {
   findRefreshTokenByHash,
+  isConcurrentRefresh,
   issueAccessToken,
   issuePair,
   revokeAllUserFamilies,
@@ -53,6 +54,17 @@ export interface AuthDeps {
 export interface LoginResult extends LoginResponseDto {
   refreshToken: string;
   refreshExpiresAt: Date;
+}
+
+/**
+ * Resultado de `refresh`. `refreshToken` ausente = fue un refresh concurrente
+ * dentro de la ventana de gracia: el token nuevo ya viajó en la respuesta que
+ * ganó la rotación y esta no debe pisar la cookie (F4-03).
+ */
+export interface RefreshResult {
+  accessToken: string;
+  refreshToken?: string;
+  refreshExpiresAt?: Date;
 }
 
 export function toUserDto(user: UserDoc): UserDto {
@@ -163,11 +175,17 @@ export function createAuthService(deps: AuthDeps) {
    * rotado (revokedAt) presentado de nuevo = posible robo: cae la familia
    * entera y queda log warn como evento de seguridad.
    */
-  async function refresh(token: string, meta: RefreshMeta = {}): Promise<TokenPair> {
+  async function refresh(token: string, meta: RefreshMeta = {}): Promise<RefreshResult> {
     const invalid = new DomainError('TOKEN_INVALID', 'La sesión ya no es válida.');
     const doc = await findRefreshTokenByHash(hashToken(token));
     if (!doc || doc.expiresAt <= new Date()) throw invalid;
+
     if (doc.revokedAt !== undefined) {
+      // Las tres apps comparten cookie (SSO de apex): abrir dos a la vez manda
+      // el mismo token dos veces. Eso es uso legítimo, no robo.
+      if (await isConcurrentRefresh(doc)) {
+        return { accessToken: await issueAccessToken(doc.userId.toHexString(), config) };
+      }
       await revokeFamily(doc.familyId);
       logger.warn(
         {
@@ -180,11 +198,23 @@ export function createAuthService(deps: AuthDeps) {
       );
       throw invalid;
     }
-    const [accessToken, rotated] = await Promise.all([
-      issueAccessToken(doc.userId.toHexString(), config),
-      rotateRefreshToken(doc, config, meta),
-    ]);
-    return { accessToken, refreshToken: rotated.token, refreshExpiresAt: rotated.expiresAt };
+
+    try {
+      const [accessToken, rotated] = await Promise.all([
+        issueAccessToken(doc.userId.toHexString(), config),
+        rotateRefreshToken(doc, config, meta),
+      ]);
+      return { accessToken, refreshToken: rotated.token, refreshExpiresAt: rotated.expiresAt };
+    } catch (err) {
+      // Perdió la carrera por milisegundos: cuando se leyó el token todavía
+      // estaba vivo y para cuando se fue a rotar, el otro request ya lo había
+      // rotado. Mismo caso que arriba, visto desde el otro lado.
+      const current = await findRefreshTokenByHash(hashToken(token));
+      if (current && (await isConcurrentRefresh(current))) {
+        return { accessToken: await issueAccessToken(doc.userId.toHexString(), config) };
+      }
+      throw err;
+    }
   }
 
   /** Idempotente: sin cookie o token desconocido también resuelve (204). */

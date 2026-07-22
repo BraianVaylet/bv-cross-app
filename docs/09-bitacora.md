@@ -22,12 +22,14 @@ Los seis PRs encadenados (#30-#35) quedaron **cerrados sin mergear** al abrir el
 | **F1** API core | 11/12 | F1-12: deploy de la API — **necesita Atlas M0 + Railway creados por un humano** |
 | **F2** Migración bv-cross | 7/8 | F2-07: deploy del FE — depende de F1-12 |
 | **F3** CRM | 3/12 | F3-04..12: el CRM (frontend). **La API que F4 necesita (F3-01/02/03) ya está completa** |
-| **F4** Reservas | 2/8 | La API de reservas está entera (servicio + endpoints + saldo). Falta el FE: F4-03 scaffolding de `apps/schedule` en adelante |
+| **F4** Reservas | 3/8 | API entera + `apps/schedule` navegable con SSO verificado. Falta el contenido de las pantallas: F4-04 (grilla y reserva) en adelante |
 | **F5-F6** | — | No arrancadas |
 
 ### Lo que está implementado y funcionando
 
 **API (`apps/api`)** — auth completa (registro, verificación por email, login, refresh rotativo con detección de reuso, reset, cambio de password), multi-tenancy por `X-Org-Id`, organizaciones con joinCode, members (CRM), exercises (catálogo + personales), entries (RMs), schedule (templates + sesiones), packs, assignments y el `booking-service` transaccional (reservar, cancelar, cancelar la clase entera). Dos jobs en el scheduler: `expire-packs` y `materialize-sessions`.
+
+**FE de agenda (`apps/schedule`, "BV Agenda")** — PWA propia del atleta: shell con bottom-nav de 4 secciones (Grilla, Mis reservas, Saldo, Cuenta), auth y join heredados de `apps/cross`, SSO por cookie compartida verificado a mano. Las pantallas son placeholders hasta F4-04/05/06.
 
 **FE de cargas (`apps/cross`)** — migrado de v1 al monorepo: auth nueva (token en memoria, refresh single-flight), join a organización, Home con catálogo + personales y búsqueda, detalle con la calculadora de cargas de v1, cuenta, PWA con prompt de actualización.
 
@@ -52,6 +54,8 @@ Las que no estaban en los docs de diseño y se resolvieron al implementar:
 | Borde exacto de la ventana RN-08 | Regla `>=` (cancelar justo en el límite se permite), probada como **función pura** (`isCancellable`) | El instante exacto no se puede provocar con el reloj real sin flakear, y falsear el clock cerca de Mongo rompe el driver |
 | Umbral de cobertura en `branches` | 90 en bookings, **80 en assignments** | Las ramas de assignments son spreads de campos opcionales: exigir 90 compra combinatoria de DTOs, no lógica probada |
 | Reservas en el seed | Se crean con el **booking-service real**, no con inserts | El seed nunca debe inventar un estado que la API no podría producir (además deja la transición RN-13 a `exhausted` visible en la demo) |
+| Refresh concurrente entre apps | **Ventana de gracia de 30 s** en la rotación (F4-03) | El SSO de apex hace que las apps compartan cookie: abrir dos a la vez presentaba el mismo token dos veces y la detección de reuso tumbaba la familia. Lo encontró la verificación del SSO, no un test |
+| Íconos de la PWA nueva | SVG (`any` + `maskable`), sin PNG | No hay rasterizador en el entorno; el manifest acepta SVG con `sizes: "any"`. Si aparece un caso de instalación que los pida, se generan |
 | Password en la migración v1→v2 | No se migra el hash: se crea una **aleatoria** y el dueño usa "olvidé mi contraseña" | Cambia el esquema de identidad (alias → email) |
 | DST con hora local inexistente | Se usa el resultado determinista de la librería (sesión corrida) | Preferible a dejar un hueco silencioso en la grilla |
 
@@ -75,7 +79,7 @@ Las que no estaban en los docs de diseño y se resolvieron al implementar:
 
 ### Próximas tareas sin bloqueo humano
 
-- **F4-03** — scaffolding de `apps/schedule` (la PWA del atleta) y la verificación del SSO por cookie de apex. La API de reservas ya está completa: el FE puede arrancar.
+- **F4-04** — grilla semanal y flujo de reserva sobre el shell de F4-03 (las pantallas están vacías, la API y la navegación ya funcionan).
 - **F3-04+** — el CRM (frontend): scaffolding, AppShell, secciones de clientes/clases/packs.
 
 ### Bloqueadas por infraestructura (humano)

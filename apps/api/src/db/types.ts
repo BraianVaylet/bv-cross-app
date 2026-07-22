@@ -68,6 +68,12 @@ export interface RefreshTokenDoc {
   familyId: ObjectId; // detección de reuso (rotación, DEC-04)
   expiresAt: Date;
   revokedAt?: Date;
+  /**
+   * Sucesor que lo reemplazó al rotar. Solo lo escribe la rotación: distingue
+   * "revocado porque ya rotó" de "revocado por logout o por reuso", y habilita
+   * la ventana de gracia de refresh concurrente (F4-03).
+   */
+  replacedBy?: ObjectId;
   createdAt: Date;
   userAgent?: string;
   ip?: string;

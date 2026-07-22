@@ -18,7 +18,7 @@
 | F1 | API core: auth + organizaciones | 12 | [docs/tasks/F1.md](docs/tasks/F1.md) | 🔨 11/12 |
 | F2 | Migración de bv-cross (cargas) | 8 | [docs/tasks/F2.md](docs/tasks/F2.md) | 🔨 7/8 |
 | F3 | CRM: gestión del gimnasio | 12 | [docs/tasks/F3.md](docs/tasks/F3.md) | 🔨 3/12 |
-| F4 | bv-cross-schedule: reservas | 8 | [docs/tasks/F4.md](docs/tasks/F4.md) | 🔨 2/8 |
+| F4 | bv-cross-schedule: reservas | 8 | [docs/tasks/F4.md](docs/tasks/F4.md) | 🔨 3/8 |
 | F5 | Estadísticas + hardening | 7 | [docs/tasks/F5.md](docs/tasks/F5.md) | — |
 | F6 | Go-live | 5 | [docs/tasks/F6.md](docs/tasks/F6.md) | — |
 
@@ -78,7 +78,7 @@
 
 - [x] **F4-01** ⛔ 🔴 Fable — `booking-service` transaccional: book/cancel/cancel-session (suite de concurrencia 14 casos, cobertura ≥90%)
 - [x] **F4-02** ⛔ 🟡 Opus — Endpoints de bookings + `GET /me/credits` (respuestas con saldo para UI sin refetch)
-- [ ] **F4-03** ⛔ 🟢 Sonnet — Scaffolding `apps/schedule` (PWA propia + verificación del SSO)
+- [x] **F4-03** ⛔ 🟢 Sonnet — Scaffolding `apps/schedule` (PWA propia + verificación del SSO)
 - [ ] **F4-04** 🔴 Opus — Grilla semanal + flujo de reserva (`WeekGrid`/`SessionCard`/`CreditBadge`; <10 s y ≤3 taps)
 - [ ] **F4-05** 🟡 Sonnet — Mis reservas + cancelación (ventana comunicada antes del error)
 - [ ] **F4-06** 🟢 Sonnet — Pantalla de saldo (packs FIFO, estados, usableFrom)

@@ -8,6 +8,8 @@ import { pingMongo } from './db/client.js';
 import { createEmailProvider, type EmailProvider } from './lib/email.js';
 import { errorBody, onError } from './lib/errors.js';
 import { requestLogger } from './lib/logger.js';
+import { assignmentsRoutes } from './modules/assignments/assignments.routes.js';
+import { bookingsRoutes } from './modules/bookings/bookings.routes.js';
 import { authRoutes } from './modules/auth/auth.routes.js';
 import { createAuthService } from './modules/auth/auth.service.js';
 import { entriesRoutes } from './modules/entries/entries.routes.js';
@@ -15,6 +17,8 @@ import { exercisesRoutes } from './modules/exercises/exercises.routes.js';
 import { meRoutes } from './modules/me/me.routes.js';
 import { membersRoutes } from './modules/members/members.routes.js';
 import { orgsRoutes } from './modules/orgs/orgs.routes.js';
+import { packsRoutes } from './modules/packs/packs.routes.js';
+import { sessionsRoutes, templatesRoutes } from './modules/schedule/schedule.routes.js';
 
 export interface AppVariables {
   requestId: string;
@@ -127,6 +131,11 @@ export function createApp(config: Config, deps: AppDeps = {}) {
   app.route('/api/v1/members', membersRoutes(config));
   app.route('/api/v1/exercises', exercisesRoutes(config));
   app.route('/api/v1/entries', entriesRoutes(config));
+  app.route('/api/v1/packs', packsRoutes(config));
+  app.route('/api/v1/assignments', assignmentsRoutes(config));
+  app.route('/api/v1/templates', templatesRoutes(config));
+  app.route('/api/v1/sessions', sessionsRoutes(config));
+  app.route('/api/v1/bookings', bookingsRoutes(config));
 
   app.all('/api/*', (c) => c.json(errorBody('NOT_FOUND', 'Ruta inexistente.'), 404));
 

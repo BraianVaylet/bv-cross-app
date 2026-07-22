@@ -17,7 +17,15 @@
 export type Access = 'public' | 'user' | 'member' | 'admin' | 'owner';
 
 /** Clave del catálogo de factories (test/factories.ts) para el test de IDOR. */
-export type ResourceKind = 'membership' | 'exercise' | 'entry';
+export type ResourceKind =
+  | 'membership'
+  | 'exercise'
+  | 'entry'
+  | 'template'
+  | 'session'
+  | 'pack'
+  | 'assignment'
+  | 'booking';
 
 export interface RoutePolicy {
   method: string;
@@ -95,4 +103,111 @@ export const ROUTE_POLICIES: RoutePolicy[] = [
     access: 'admin',
     resource: 'membership',
   },
+
+  // assignments — packs asignados (F3-03). El saldo propio cuelga de /me.
+  { method: 'GET', path: '/api/v1/me/assignments', access: 'member' },
+  {
+    method: 'GET',
+    path: '/api/v1/members/:id/assignments',
+    access: 'admin',
+    resource: 'membership',
+  },
+  {
+    method: 'POST',
+    path: '/api/v1/members/:id/assignments',
+    access: 'admin',
+    resource: 'membership',
+    sampleBody: { packId: '0123456789abcdef01234567' },
+  },
+  {
+    method: 'POST',
+    path: '/api/v1/assignments/:id/cancel',
+    access: 'admin',
+    resource: 'assignment',
+    sampleBody: { reason: 'error de carga' },
+  },
+
+  // packs — catálogo del gimnasio (F3-02). Admin-only en fase 1.
+  { method: 'GET', path: '/api/v1/packs', access: 'admin' },
+  {
+    method: 'POST',
+    path: '/api/v1/packs',
+    access: 'admin',
+    sampleBody: {
+      name: 'Pack 8',
+      classCount: 8,
+      durationDays: 30,
+      price: 25000,
+      paymentMethod: 'cash',
+    },
+  },
+  {
+    method: 'PATCH',
+    path: '/api/v1/packs/:id',
+    access: 'admin',
+    resource: 'pack',
+    sampleBody: { name: 'Otro nombre' },
+  },
+  { method: 'DELETE', path: '/api/v1/packs/:id', access: 'admin', resource: 'pack' },
+  { method: 'POST', path: '/api/v1/packs/:id/archive', access: 'admin', resource: 'pack' },
+  { method: 'POST', path: '/api/v1/packs/:id/restore', access: 'admin', resource: 'pack' },
+
+  // schedule — grilla del gimnasio (F3-01). Templates: solo admin.
+  { method: 'GET', path: '/api/v1/templates', access: 'admin' },
+  {
+    method: 'POST',
+    path: '/api/v1/templates',
+    access: 'admin',
+    sampleBody: {
+      weekday: 1,
+      startTime: '18:00',
+      durationMin: 60,
+      discipline: 'crossfit',
+      capacity: 12,
+    },
+  },
+  {
+    method: 'PATCH',
+    path: '/api/v1/templates/:id',
+    access: 'admin',
+    resource: 'template',
+    sampleBody: { capacity: 10 },
+  },
+  { method: 'DELETE', path: '/api/v1/templates/:id', access: 'admin', resource: 'template' },
+
+  // Sesiones: la grilla la lee cualquier miembro; gestionarlas es de admin.
+  { method: 'GET', path: '/api/v1/sessions', access: 'member' },
+  {
+    method: 'POST',
+    path: '/api/v1/sessions',
+    access: 'admin',
+    sampleBody: {
+      date: '2030-01-07',
+      startTime: '18:00',
+      durationMin: 60,
+      discipline: 'crossfit',
+      capacity: 12,
+    },
+  },
+  {
+    method: 'PATCH',
+    path: '/api/v1/sessions/:id',
+    access: 'admin',
+    resource: 'session',
+    sampleBody: { capacity: 10 },
+  },
+  { method: 'POST', path: '/api/v1/sessions/:id/cancel', access: 'admin', resource: 'session' },
+  { method: 'GET', path: '/api/v1/sessions/:id/attendees', access: 'admin', resource: 'session' },
+
+  // bookings — el atleta reserva y cancela lo suyo (F4-02). No hay ruta de
+  // admin: cancelar la clase entera es `POST /sessions/:id/cancel`.
+  {
+    method: 'POST',
+    path: '/api/v1/bookings',
+    access: 'member',
+    sampleBody: { sessionId: '000000000000000000000001' },
+  },
+  { method: 'POST', path: '/api/v1/bookings/:id/cancel', access: 'member', resource: 'booking' },
+  { method: 'GET', path: '/api/v1/me/bookings', access: 'member' },
+  { method: 'GET', path: '/api/v1/me/credits', access: 'member' },
 ];

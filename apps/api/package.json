@@ -11,11 +11,13 @@
     "start": "node dist/index.js",
     "typecheck": "tsc --noEmit -p tsconfig.json",
     "lint": "eslint src",
-    "test": "vitest run"
+    "test": "vitest run --coverage"
   },
   "dependencies": {
     "@bv/contracts": "workspace:*",
-    "@hono/node-server": "^1.13.7",
+    "@date-fns/tz": "^1.5.0",
+    "@hono/node-server": "^2.0.10",
+    "date-fns": "^4.4.0",
     "hono": "^4.6.14",
     "mongodb": "^6.12.0",
     "node-cron": "^4.6.0",
@@ -26,6 +28,7 @@
     "@bv/config": "workspace:*",
     "@types/better-sqlite3": "^7.6.13",
     "@types/node": "^22.10.2",
+    "@vitest/coverage-v8": "^3.2.7",
     "better-sqlite3": "^11.10.0",
     "eslint": "^9.17.0",
     "mongodb-memory-server": "^10.1.2",

@@ -1,4 +1,6 @@
 import {
+  assignmentsQuery,
+  createAssignmentBody,
   createMemberBody,
   entriesQuery,
   membersQuery,
@@ -13,6 +15,10 @@ import { parseBody, parseQuery } from '../../lib/http.js';
 import { requireAuth } from '../../middleware/auth.js';
 import { requireRole } from '../../middleware/roles.js';
 import { tenantGuard } from '../../middleware/tenant.js';
+import {
+  createAssignment,
+  listForMember as listAssignmentsForMember,
+} from '../assignments/assignments.service.js';
 import { listForMember } from '../entries/entries.service.js';
 import { create, get, list, update } from './members.service.js';
 
@@ -56,6 +62,19 @@ export function membersRoutes(config: Config) {
   router.get('/:id/entries', async (c) => {
     const query = parseQuery(c, entriesQuery);
     return c.json(await listForMember(c.get('org'), memberId(c.req.param('id')), query));
+  });
+
+  // Packs asignados al cliente (F3-03).
+  router.get('/:id/assignments', async (c) => {
+    const query = parseQuery(c, assignmentsQuery);
+    const items = await listAssignmentsForMember(c.get('org'), memberId(c.req.param('id')), query);
+    return c.json({ items });
+  });
+
+  router.post('/:id/assignments', requireRole('assignments:manage'), async (c) => {
+    const body = await parseBody(c, createAssignmentBody);
+    const assignment = await createAssignment(c.get('org'), memberId(c.req.param('id')), body);
+    return c.json({ assignment }, 201);
   });
 
   return router;

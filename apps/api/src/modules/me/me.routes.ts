@@ -1,10 +1,13 @@
-import { updateMeBody } from '@bv/contracts';
+import { assignmentsQuery, myBookingsQuery, updateMeBody } from '@bv/contracts';
 import { Hono } from 'hono';
 import type { AppEnv } from '../../app.js';
 import type { Config } from '../../config.js';
-import { parseBody } from '../../lib/http.js';
+import { parseBody, parseQuery } from '../../lib/http.js';
 import { requireAuth } from '../../middleware/auth.js';
+import { tenantGuard } from '../../middleware/tenant.js';
+import { listMine } from '../assignments/assignments.service.js';
 import type { AuthService } from '../auth/auth.service.js';
+import { listMyBookingsPage, myCredits } from '../bookings/bookings.service.js';
 
 /** /me: perfil propio y membresías para el selector de org (F1-07, F7 funcional). */
 export function meRoutes(config: Config, service: AuthService) {
@@ -27,6 +30,24 @@ export function meRoutes(config: Config, service: AuthService) {
     const memberships = await service.myMemberships(c.get('userId'));
     return c.json({ memberships });
   });
+
+  // Saldo propio en la org activa (F3-03; base de la pantalla de F4-06).
+  router.get('/assignments', tenantGuard(), async (c) => {
+    const query = parseQuery(c, assignmentsQuery);
+    const items = await listMine(c.get('org'), c.get('userId'), query);
+    return c.json({ items });
+  });
+
+  // Reservas propias (F4-02): `upcoming` para la home, `history` para el resto.
+  router.get('/bookings', tenantGuard(), async (c) => {
+    const query = parseQuery(c, myBookingsQuery);
+    return c.json(await listMyBookingsPage(c.get('org'), c.get('userId'), query));
+  });
+
+  // Saldo consolidado para la pantalla de créditos (F4-06).
+  router.get('/credits', tenantGuard(), async (c) =>
+    c.json(await myCredits(c.get('org'), c.get('userId'))),
+  );
 
   return router;
 }

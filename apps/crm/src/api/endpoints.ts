@@ -13,6 +13,7 @@ import type {
   TemplateDto,
   UpdateMemberBody,
   UpdateOrgBody,
+  UpdatePackBody,
   UserDto,
 } from '@bv/contracts';
 import { ApiError, request } from './client';
@@ -104,9 +105,16 @@ export const api = {
       request<{ template: TemplateDto }>('/api/v1/templates', { method: 'POST', body }),
   },
   packs: {
-    list: () => request<{ items: PackDto[] }>('/api/v1/packs'),
+    list: (includeArchived = false) =>
+      request<{ items: PackDto[] }>(`/api/v1/packs${includeArchived ? '?includeArchived=1' : ''}`),
     create: (body: CreatePackBody) =>
       request<{ pack: PackDto }>('/api/v1/packs', { method: 'POST', body }),
+    update: (id: string, body: UpdatePackBody) =>
+      request<{ pack: PackDto }>(`/api/v1/packs/${id}`, { method: 'PATCH', body }),
+    archive: (id: string) =>
+      request<{ pack: PackDto }>(`/api/v1/packs/${id}/archive`, { method: 'POST' }),
+    restore: (id: string) =>
+      request<{ pack: PackDto }>(`/api/v1/packs/${id}/restore`, { method: 'POST' }),
   },
 };
 

@@ -6,13 +6,26 @@
 
 ## 1. Dónde está cada cosa
 
-`main` contiene F0 (5/6), **F1-01..11 y F2-01..06** — entró con el PR consolidado #29. Todo lo pendiente viaja ahora en **un solo PR consolidado (#36, rama `feat/f3-f4-api`)**: F2-08 + F3-01/02/03 + F4-01/02.
+`main` llega hasta **F4-02**: entró con el PR consolidado **#36** (F2-08 + F3-01/02/03 + F4-01/02), que a su vez reemplazó a #30-#35 (cerrados sin mergear).
 
-### Por qué un PR y no una pila
+**Quedan 2 PRs abiertos, los dos con CI verde. Se mergean en este orden:**
 
-Los seis PRs encadenados (#30-#35) quedaron **cerrados sin mergear** al abrir el consolidado: su contenido está íntegro acá. Una pila de 6 obliga a mergear en orden exacto, borrar cada rama para que GitHub retargetee la siguiente y aguantar que un advisory nuevo voltee el CI de las seis. Un PR se revisa por commits (la historia individual está intacta) y entra de una.
+```
+main
+ └─ #40  F4-03..F4-06 + F3-04   BV Agenda completa + shell del CRM
+     └─ #41  F3-05              sección Clientes
+```
 
-> Es la segunda vez que pasa: #29 reemplazó un stack previo de 8 PRs (#19-#28) por el mismo motivo. **Conclusión para lo que viene: encadenar más de 2 o 3 PRs no compensa.**
+- **#40** consolida lo que habían sido #37, #38 y #39 (cerrados; su contenido está ahí commit por commit).
+- **#41** sale de #40 porque usa el `AppShell` y el `membershipSummaryDto` ampliado.
+
+Después de mergear los dos, `main` queda en **F3 5/12 · F4 6/8** y lo que sigue arranca desde `main` limpio.
+
+### Por qué se consolida en vez de encadenar
+
+Una pila larga obliga a mergear en orden exacto, borrar cada rama para que GitHub retargetee la siguiente, y aguantar que un advisory nuevo voltee el CI de todas a la vez. Un PR consolidado se revisa igual por commits (la historia individual queda intacta) y entra de una.
+
+> Pasó tres veces: #29 reemplazó a #19-#28, #36 a #30-#35 y #40 a #37-#39. **Regla: no encadenar más de 2 o 3 PRs.** Si una tarea nueva necesita algo que está en un PR sin mergear, conviene pedir el merge antes de arrancar.
 
 ## 2. Estado por fase
 
@@ -83,17 +96,34 @@ Las que no estaban en los docs de diseño y se resolvieron al implementar:
 
 ## 5. Cómo retomar
 
-1. **Mergear el PR consolidado** (§1). Después de eso `main` refleja todo y PLAN.md queda al día. Abrir como mucho 2 o 3 PRs encadenados sobre lo que sigue: más que eso termina en otra consolidación.
+1. **Mergear #40 y después #41** (§1). Recién ahí `main` refleja todo y PLAN.md queda al día.
 2. Antes de tomar una tarea, leer su spec completa en `docs/tasks/F*.md` — son el contrato (objetivo, casos de prueba, criterios de aceptación).
 3. **Todo endpoint nuevo se registra en `apps/api/src/route-policies.ts`** en el mismo PR, con su factory en `src/test/factories.ts` si recibe un `:id`. Si no, el build falla (por diseño).
 4. Si el módulo introduce datos, extender el seed (`src/seed.ts`) en el mismo PR.
 5. Correr `pnpm turbo lint typecheck test build` + `pnpm audit --prod --audit-level=high` antes de abrir el PR.
+6. **Verificar contra la API real, no solo con tests.** Los tres bugs más caros de esta fase (refresh concurrente, `POST /orgs` sin `membership`, Tailwind sin escanear `@bv/ui`) pasaron los tests y aparecieron recién al abrir la app. Cómo levantar el entorno: §6.
 
 ### Próximas tareas sin bloqueo humano
 
-- **F3-06..F3-11** — el resto de las secciones del CRM. Son independientes entre sí: se pueden tomar en cualquier orden.
+- **F3-06..F3-11** — el resto de las secciones del CRM, independientes entre sí. La más grande es F3-06 (Clases: grilla de templates, calendario de sesiones y anotados); las más chicas, F3-07 (Packs), F3-08 (Ejercicios) y F3-11 (Configuración).
 - F4-07 y F3-12 (deploys) están bloqueados por F1-12; F4-08 (E2E) conviene después del deploy.
-- **F3-04+** — el CRM (frontend): scaffolding, AppShell, secciones de clientes/clases/packs.
+
+### Deuda anotada durante esta fase
+
+- **Capturas y videos** que piden varios criterios de aceptación (F3-04, F3-05, F4-04, F4-06): quedaron pendientes en todos los PRs porque la herramienta de captura del entorno corta por timeout. La verificación funcional está hecha y documentada en cada PR.
+- `src/auth` y `src/api` están copiados en las **tres** apps. Ya listado en F6-05 como candidato a `packages/app-kit`.
+
+## 6. Levantar el entorno completo (API + un FE)
+
+Sirve para verificar a mano y es la única forma de agarrar los bugs que los tests con mocks no ven.
+
+1. `apps/api/.env` (gitignored) con `MONGODB_URI=mongodb://127.0.0.1:37017/bvcross-dev?directConnection=true` y el resto de `.env.example`.
+2. Un `apps/api/mongo.tmp.mts` que levante `MongoMemoryReplSet` en el puerto 37017 — **replica set, no standalone**: las transacciones lo exigen.
+3. Un `apps/api/dev.tmp.mts` con `process.loadEnvFile('.env')` y `await import('./src/index.ts')`: `src/index.ts` **no** lee `.env` por su cuenta (los scripts sí).
+4. `pnpm --filter @bv/api db:seed` y levantar la API (8787) más el FE que toque: cross 5173 · schedule 5174 · crm 5175.
+5. Al terminar: borrar los `*.tmp.mts`, matar el mongod por puerto y no commitear los puertos locales de `.claude/launch.json`.
+
+Usuarios del seed: `owner@demo.test` / `admin@demo.test` / `atleta1..4@demo.test`, password `Demo!1234`.
 
 ### Bloqueadas por infraestructura (humano)
 

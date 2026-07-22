@@ -1,4 +1,6 @@
+export * from './assignments.js';
 export * from './auth.js';
+export * from './bookings.js';
 export * from './core.js';
 export * from './entries.js';
 export * from './enums.js';
@@ -7,4 +9,6 @@ export * from './exercises.js';
 export * from './members.js';
 export * from './orgs.js';
 export * from './permissions.js';
+export * from './packs.js';
 export * from './pagination.js';
+export * from './schedule.js';

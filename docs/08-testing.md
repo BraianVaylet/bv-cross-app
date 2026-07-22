@@ -69,4 +69,4 @@ jobs: pnpm install --frozen-lockfile → turbo run lint typecheck test → audit
 Turborepo cachea por paquete: un PR que solo toca `apps/crm` no re-testea la API (cache hit). El lockfile único se audita una sola vez.
 - Todo verde para mergear (branch protection). Duración objetivo < 5 min.
 - E2E: workflow aparte contra preview/staging, manual o nightly.
-- Cobertura: se **mide** y publica en el PR (c8), sin umbral duro global; umbral 90%+ solo en `modules/bookings` y `modules/assignments` (donde está la plata).
+- Cobertura: se **mide** y publica en el PR (provider `v8` de vitest, configurado en `apps/api/vitest.config.ts`), sin umbral duro global; umbral 90%+ solo en `modules/bookings` y `modules/assignments` (donde está la plata) — statements/lines/functions. `branches` va 90 en bookings y 80 en assignments: sus ramas son mayormente spreads de campos opcionales (`...(x !== undefined ? { x } : {})`), donde exigir 90 compra combinatoria de DTOs, no lógica probada.

@@ -1,7 +1,18 @@
 import type { Role } from '@bv/contracts';
 import { ObjectId } from 'mongodb';
 import type { Config } from '../config.js';
-import { exercises, memberships, organizations, rmEntries, users } from '../db/collections.js';
+import {
+  bookings,
+  classSessions,
+  classTemplates,
+  exercises,
+  memberships,
+  organizations,
+  packAssignments,
+  packs,
+  rmEntries,
+  users,
+} from '../db/collections.js';
 import type { MembershipStatus } from '@bv/contracts';
 import { issueAccessToken } from '../modules/auth/token-service.js';
 import type { ResourceKind } from '../route-policies.js';
@@ -125,6 +136,103 @@ export const RESOURCE_FACTORIES: Record<
       kg: 100,
       date: '2026-01-01',
       createdAt: new Date(),
+    });
+    return id.toHexString();
+  },
+  template: async (orgId) => {
+    // Plantilla de la grilla de la org ajena (F3-01).
+    const now = new Date();
+    const id = new ObjectId();
+    await classTemplates().insertOne({
+      _id: id,
+      orgId,
+      weekday: 1,
+      startTime: '18:00',
+      durationMin: 60,
+      discipline: 'crossfit',
+      capacity: 12,
+      active: true,
+      createdAt: now,
+      updatedAt: now,
+    });
+    return id.toHexString();
+  },
+  assignment: async (orgId) => {
+    // Asignación de un usuario ajeno en la org ajena (F3-03).
+    const now = new Date();
+    const id = new ObjectId();
+    await packAssignments().insertOne({
+      _id: id,
+      orgId,
+      userId: new ObjectId(),
+      packId: new ObjectId(),
+      snapshot: {
+        name: 'Pack Ajeno',
+        classCount: 8,
+        durationDays: 30,
+        price: 25_000,
+        currency: 'ARS',
+        paymentMethod: 'cash',
+      },
+      startsAt: now,
+      expiresAt: new Date(now.getTime() + 30 * 86_400_000),
+      classesUsed: 0,
+      status: 'active',
+      payment: { amount: 25_000, method: 'cash', paidAt: now },
+      createdAt: now,
+      updatedAt: now,
+    });
+    return id.toHexString();
+  },
+  pack: async (orgId) => {
+    // Pack del catálogo de la org ajena (F3-02).
+    const now = new Date();
+    const id = new ObjectId();
+    await packs().insertOne({
+      _id: id,
+      orgId,
+      name: `Pack Ajeno ${id.toHexString().slice(-4)}`,
+      classCount: 8,
+      durationDays: 30,
+      price: 25_000,
+      currency: 'ARS',
+      paymentMethod: 'cash',
+      createdAt: now,
+      updatedAt: now,
+    });
+    return id.toHexString();
+  },
+  booking: async (orgId) => {
+    // Reserva de un usuario ajeno en la org ajena (F4-02).
+    const id = new ObjectId();
+    await bookings().insertOne({
+      _id: id,
+      orgId,
+      sessionId: new ObjectId(),
+      userId: new ObjectId(),
+      packAssignmentId: new ObjectId(),
+      status: 'booked',
+      bookedAt: new Date(),
+    });
+    return id.toHexString();
+  },
+  session: async (orgId) => {
+    // Sesión materializada de la org ajena (F3-01).
+    const now = new Date();
+    const id = new ObjectId();
+    const startsAt = new Date(Date.now() + 86_400_000);
+    await classSessions().insertOne({
+      _id: id,
+      orgId,
+      templateId: null,
+      startsAt,
+      endsAt: new Date(startsAt.getTime() + 3_600_000),
+      discipline: 'crossfit',
+      capacity: 12,
+      bookedCount: 0,
+      status: 'scheduled',
+      createdAt: now,
+      updatedAt: now,
     });
     return id.toHexString();
   },

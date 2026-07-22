@@ -185,3 +185,37 @@ export const UserIcon = (p: IconProps) => (
     <path d="M4 21c0-4 3.6-6 8-6s8 2 8 6" />
   </Icon>
 );
+
+// Navegación del CRM (F3-04).
+
+export const HomeIcon = (p: IconProps) => (
+  <Icon {...p}>
+    <path d="M3 10.5 12 3l9 7.5" />
+    <path d="M5 9.5V20a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1V9.5" />
+  </Icon>
+);
+
+export const UsersIcon = (p: IconProps) => (
+  <Icon {...p}>
+    <circle cx="9" cy="8" r="3.5" />
+    <path d="M2 20c0-3.5 3-5.5 7-5.5s7 2 7 5.5" />
+    <path d="M17 8.5a3 3 0 0 1 0 5.5" />
+    <path d="M18.5 20c0-2.4-.8-4-2-5" />
+  </Icon>
+);
+
+export const ChartIcon = (p: IconProps) => (
+  <Icon {...p}>
+    <line x1="4" y1="20" x2="20" y2="20" />
+    <rect x="6" y="11" width="3" height="6" />
+    <rect x="11" y="7" width="3" height="10" />
+    <rect x="16" y="13" width="3" height="4" />
+  </Icon>
+);
+
+export const SettingsIcon = (p: IconProps) => (
+  <Icon {...p}>
+    <circle cx="12" cy="12" r="3" />
+    <path d="M12 2v3M12 19v3M2 12h3M19 12h3M4.9 4.9l2.1 2.1M17 17l2.1 2.1M19.1 4.9 17 7M7 17l-2.1 2.1" />
+  </Icon>
+);

@@ -3,6 +3,7 @@ import { describe, expect, it, vi } from 'vitest';
 import {
   SessionCard,
   isSelectable,
+  occupancyTone,
   sessionState,
   type SessionLike,
   type SessionState,
@@ -41,6 +42,29 @@ describe('sessionState', () => {
     for (const state of all) {
       expect(isSelectable(state)).toBe(selectable.includes(state));
     }
+  });
+});
+
+describe('occupancyTone (F3-06)', () => {
+  it('cambia justo en los umbrales del producto', () => {
+    // 12 lugares: hasta 9 es normal, 9/12 (75%) todavía no…
+    expect(occupancyTone(8, 12)).toBe('ok');
+    expect(occupancyTone(9, 12)).toBe('ok');
+    // …10/12 pasa el 80% y avisa; 12/12 es lleno.
+    expect(occupancyTone(10, 12)).toBe('warn');
+    expect(occupancyTone(11, 12)).toBe('warn');
+    expect(occupancyTone(12, 12)).toBe('danger');
+  });
+
+  it('el 80% exacto ya es advertencia', () => {
+    expect(occupancyTone(8, 10)).toBe('warn');
+    expect(occupancyTone(7, 10)).toBe('ok');
+  });
+
+  it('sobrecupo o cupo cero no rompen la escala', () => {
+    expect(occupancyTone(13, 12)).toBe('danger');
+    expect(occupancyTone(0, 0)).toBe('danger');
+    expect(occupancyTone(0, 12)).toBe('ok');
   });
 });
 

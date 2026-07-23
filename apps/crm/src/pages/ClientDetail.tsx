@@ -19,6 +19,7 @@ import { useNavigate, useParams } from 'react-router-dom';
 import { api, errorMessage } from '../api/endpoints';
 import { useAuth } from '../auth/AuthContext';
 import { BackLink } from '../components/BackLink';
+import { fmtMoney } from '../lib/format';
 import { usePageTitle } from '../lib/usePageTitle';
 
 const STATUS_BADGE: Record<string, { tone: 'ok' | 'accent' | 'neutral' | 'warn' | 'danger'; label: string }> = {
@@ -29,8 +30,6 @@ const STATUS_BADGE: Record<string, { tone: 'ok' | 'accent' | 'neutral' | 'warn' 
   expired: { tone: 'warn', label: 'Vencido' },
   cancelled: { tone: 'danger', label: 'Anulado' },
 };
-
-const money = (amount: number): string => `$${amount.toLocaleString('es-AR')}`;
 
 /** Ficha del cliente (F3-05): datos, packs y acciones. */
 export function ClientDetail() {
@@ -199,7 +198,7 @@ export function ClientDetail() {
                         <p className="font-medium text-ink">{a.snapshot.name}</p>
                         <p className="text-sm text-ink-muted">
                           {a.remaining} de {a.snapshot.classCount} clases ·{' '}
-                          {money(a.payment.amount)} {a.payment.method === 'cash' ? 'efectivo' : a.payment.method}
+                          {fmtMoney(a.payment.amount)} {a.payment.method === 'cash' ? 'efectivo' : a.payment.method}
                         </p>
                       </div>
                       {packBadge && <Badge tone={packBadge.tone}>{packBadge.label}</Badge>}
@@ -518,7 +517,7 @@ function AssignPackModal({
             >
               {packs.map((p) => (
                 <option key={p.id} value={p.id}>
-                  {p.name} — {p.classCount} clases · {p.durationDays} días · {money(p.price)}
+                  {p.name} — {p.classCount} clases · {p.durationDays} días · {fmtMoney(p.price)}
                 </option>
               ))}
             </Select>
@@ -555,7 +554,7 @@ function AssignPackModal({
 
             {selected && (
               <p className="rounded-xl bg-raised px-3 py-2 text-sm text-ink">
-                {selected.classCount} clases · vence el {expiryPreview} · {money(Number(amount) || 0)}{' '}
+                {selected.classCount} clases · vence el {expiryPreview} · {fmtMoney(Number(amount) || 0)}{' '}
                 {method === 'cash' ? 'efectivo' : method}
               </p>
             )}

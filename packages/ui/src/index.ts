@@ -27,9 +27,15 @@ export {
   SessionCard,
   sessionState,
   isSelectable,
+  occupancyTone,
   ALMOST_FULL_RATIO,
 } from './components/SessionCard.js';
-export type { SessionCardProps, SessionLike, SessionState } from './components/SessionCard.js';
+export type {
+  SessionCardProps,
+  SessionLike,
+  SessionState,
+  OccupancyTone,
+} from './components/SessionCard.js';
 export { CreditBadge } from './components/CreditBadge.js';
 export type { CreditBadgeProps } from './components/CreditBadge.js';
 export * from './lib/agendaTime.js';

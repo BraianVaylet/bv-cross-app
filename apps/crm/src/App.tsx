@@ -7,6 +7,7 @@ import { ErrorBoundary } from './components/ErrorBoundary';
 import { Account } from './pages/Account';
 import { ClientDetail } from './pages/ClientDetail';
 import { Clients } from './pages/Clients';
+import { Exercises } from './pages/Exercises';
 import { Forgot } from './pages/Forgot';
 import { Login } from './pages/Login';
 import { NoAccess } from './pages/NoAccess';
@@ -47,10 +48,7 @@ export function App() {
                   <Route path="/clients/:id" element={<ClientDetail />} />
                   <Route path="/classes" element={<Placeholder title="Clases" task="F3-06" />} />
                   <Route path="/packs" element={<Packs />} />
-                  <Route
-                    path="/exercises"
-                    element={<Placeholder title="Ejercicios" task="F3-08" />}
-                  />
+                  <Route path="/exercises" element={<Exercises />} />
                   <Route path="/stats" element={<Placeholder title="Estadísticas" task="F3-10" />} />
                   <Route
                     path="/settings"

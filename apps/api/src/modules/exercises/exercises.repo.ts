@@ -113,6 +113,17 @@ export function countEntries(exerciseId: ObjectId): Promise<number> {
 }
 
 /**
+ * Qué ejercicios de un conjunto ya tienen algún registro. Un solo `distinct`
+ * en vez de un count por ejercicio: la sección Ejercicios del CRM lo usa para
+ * marcar cuáles tienen el tipo bloqueado (F3-08) sin un N+1.
+ */
+export async function exercisesWithEntries(ids: ObjectId[]): Promise<Set<string>> {
+  if (ids.length === 0) return new Set();
+  const withEntries = await rmEntries().distinct('exerciseId', { exerciseId: { $in: ids } });
+  return new Set(withEntries.map((id) => id.toHexString()));
+}
+
+/**
  * Borrado de personal con cascada de entries (comportamiento v1) en una
  * transacción: nunca quedan entries huérfanas.
  */

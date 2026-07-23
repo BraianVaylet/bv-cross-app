@@ -2,16 +2,19 @@ import type {
   AssignmentDto,
   CreateAssignmentBody,
   CreateMemberBody,
+  CreateExerciseBody,
   CreateOrgBody,
   CreatePackBody,
   CreateTemplateBody,
   LoginResponseDto,
   MemberDto,
   MembershipSummaryDto,
+  ExerciseDto,
   OrgDto,
   PackDto,
   TemplateDto,
   UpdateMemberBody,
+  UpdateExerciseBody,
   UpdateOrgBody,
   UpdatePackBody,
   UserDto,
@@ -98,6 +101,23 @@ export const api = {
         method: 'POST',
         body: { reason },
       }),
+  },
+  exercises: {
+    // scope 'org' = catálogo del gimnasio. Con includeArchived el admin ve
+    // también los archivados (RN-19).
+    list: (includeArchived = false) =>
+      request<{ items: ExerciseDto[] }>(
+        `/api/v1/exercises?scope=org${includeArchived ? '&includeArchived=1' : ''}`,
+      ),
+    create: (body: CreateExerciseBody) =>
+      request<{ exercise: ExerciseDto }>('/api/v1/exercises', { method: 'POST', body }),
+    update: (id: string, body: UpdateExerciseBody) =>
+      request<{ exercise: ExerciseDto }>(`/api/v1/exercises/${id}`, { method: 'PATCH', body }),
+    archive: (id: string, archived: boolean) =>
+      request<{ exercise: ExerciseDto }>(
+        `/api/v1/exercises/${id}/${archived ? 'archive' : 'restore'}`,
+        { method: 'POST' },
+      ),
   },
   templates: {
     list: () => request<{ items: TemplateDto[] }>('/api/v1/templates'),

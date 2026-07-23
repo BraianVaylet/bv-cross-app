@@ -57,6 +57,12 @@ export const exerciseDto = z
     imageUrl: z.string().optional(),
     notes: z.string().optional(),
     archivedAt: z.string().optional(), // ISO — solo scope 'org' (RN-19)
+    /**
+     * `true` si ya tiene registros de carga: el CRM bloquea el cambio de tipo
+     * (TYPE_LOCKED, RN-23) antes del error. Solo lo devuelve el listado admin
+     * del catálogo; en el resto de las vistas viaja `undefined`.
+     */
+    hasEntries: z.boolean().optional(),
     createdAt: z.string(), // ISO
     updatedAt: z.string(), // ISO
   })

@@ -6,26 +6,17 @@
 
 ## 1. Dónde está cada cosa
 
-`main` llega hasta **F4-02**: entró con el PR consolidado **#36** (F2-08 + F3-01/02/03 + F4-01/02), que a su vez reemplazó a #30-#35 (cerrados sin mergear).
+`main` llega hasta **F3-04**: entró con el PR consolidado **#40** (F4-03..F4-06 + F3-04), que reemplazó a #37-#39.
 
-**Quedan 2 PRs abiertos, los dos con CI verde. Se mergean en este orden:**
+**Queda 1 PR abierto: #43**, con las tres secciones del CRM que siguen — **F3-05** (Clientes), **F3-07** (Packs) y **F3-08** (Ejercicios). Reemplaza a #41 y #42, cerrados sin mergear: su contenido está ahí commit por commit.
 
-```
-main
- └─ #40  F4-03..F4-06 + F3-04   BV Agenda completa + shell del CRM
-     └─ #41  F3-05              sección Clientes
-```
-
-- **#40** consolida lo que habían sido #37, #38 y #39 (cerrados; su contenido está ahí commit por commit).
-- **#41** sale de #40 porque usa el `AppShell` y el `membershipSummaryDto` ampliado.
-
-Después de mergear los dos, `main` queda en **F3 5/12 · F4 6/8** y lo que sigue arranca desde `main` limpio.
+Después de mergearlo, `main` queda en **F3 7/12 · F4 6/8**.
 
 ### Por qué se consolida en vez de encadenar
 
 Una pila larga obliga a mergear en orden exacto, borrar cada rama para que GitHub retargetee la siguiente, y aguantar que un advisory nuevo voltee el CI de todas a la vez. Un PR consolidado se revisa igual por commits (la historia individual queda intacta) y entra de una.
 
-> Pasó tres veces: #29 reemplazó a #19-#28, #36 a #30-#35 y #40 a #37-#39. **Regla: no encadenar más de 2 o 3 PRs.** Si una tarea nueva necesita algo que está en un PR sin mergear, conviene pedir el merge antes de arrancar.
+> Pasó cuatro veces: #29 reemplazó a #19-#28, #36 a #30-#35, #40 a #37-#39 y #43 a #41-#42. **Regla: no encadenar más de 2 o 3 PRs.** Si una tarea nueva necesita algo que está en un PR sin mergear, conviene pedir el merge antes de arrancar.
 
 ## 2. Estado por fase
 
@@ -99,7 +90,7 @@ Las que no estaban en los docs de diseño y se resolvieron al implementar:
 
 ## 5. Cómo retomar
 
-1. **Mergear #40 y después #41** (§1). Recién ahí `main` refleja todo y PLAN.md queda al día.
+1. **Mergear #43** (§1). Recién ahí `main` refleja todo y PLAN.md queda al día.
 2. Antes de tomar una tarea, leer su spec completa en `docs/tasks/F*.md` — son el contrato (objetivo, casos de prueba, criterios de aceptación).
 3. **Todo endpoint nuevo se registra en `apps/api/src/route-policies.ts`** en el mismo PR, con su factory en `src/test/factories.ts` si recibe un `:id`. Si no, el build falla (por diseño).
 4. Si el módulo introduce datos, extender el seed (`src/seed.ts`) en el mismo PR.

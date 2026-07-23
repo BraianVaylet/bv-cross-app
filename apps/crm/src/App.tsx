@@ -17,6 +17,7 @@ import { Packs } from './pages/Packs';
 import { Placeholder } from './pages/Placeholder';
 import { Register } from './pages/Register';
 import { Reset } from './pages/Reset';
+import { Settings } from './pages/Settings';
 import { SelectOrg } from './pages/SelectOrg';
 import { Verify } from './pages/Verify';
 
@@ -50,10 +51,7 @@ export function App() {
                   <Route path="/packs" element={<Packs />} />
                   <Route path="/exercises" element={<Exercises />} />
                   <Route path="/stats" element={<Placeholder title="Estadísticas" task="F3-10" />} />
-                  <Route
-                    path="/settings"
-                    element={<Placeholder title="Configuración" task="F3-11" />}
-                  />
+                  <Route path="/settings" element={<Settings />} />
                   <Route path="/account" element={<Account />} />
                 </Route>
               </Route>

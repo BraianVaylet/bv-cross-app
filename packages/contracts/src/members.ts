@@ -31,6 +31,12 @@ export const updateMemberBody = z
     profile: memberProfile.partial().optional(),
     adminNotes: z.string().max(2000).optional(),
     status: z.enum(['active', 'disabled']).optional(), // sin DELETE: RN-03
+    /**
+     * Promover a admin o degradar a athlete (F3-11). Solo el owner puede
+     * tocarlo (`org:manage-admins`) y `owner` no está en la lista: la
+     * titularidad no se transfiere por PATCH.
+     */
+    role: z.enum(['admin', 'athlete']).optional(),
   })
   .strict();
 

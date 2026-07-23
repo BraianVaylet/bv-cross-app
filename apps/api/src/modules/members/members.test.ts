@@ -189,6 +189,71 @@ describe('PATCH /members/:id', () => {
     expect((await req('GET', 'orgs/current', athlete.token, ctx.orgId)).status).toBe(200);
   });
 
+  it('roles: el owner promueve y degrada; un admin no puede, y al owner no lo toca nadie (F3-11)', async () => {
+    const ctx = await createOrgCtx('own-roles@test.com', 'Roles Gym');
+    const ana = await seedUser('ana-roles@test.com');
+    const beto = await seedUser('beto-roles@test.com');
+    for (const u of [ana, beto]) {
+      expect((await req('POST', 'orgs/join', u.token, undefined, { code: ctx.joinCode })).status).toBe(201);
+    }
+
+    const rows = async () =>
+      ((await (await req('GET', 'members?limit=50', ctx.owner.token, ctx.orgId)).json()) as {
+        items: { id: string; role: string; user?: { email: string } }[];
+      }).items;
+
+    const inicial = await rows();
+    const ownerRow = inicial.find((m) => m.role === 'owner');
+    const anaRow = inicial.find((m) => m.user?.email === 'ana-roles@test.com');
+    const betoRow = inicial.find((m) => m.user?.email === 'beto-roles@test.com');
+
+    // El owner promueve a Ana.
+    const promote = await req('PATCH', `members/${anaRow?.id ?? ''}`, ctx.owner.token, ctx.orgId, {
+      role: 'admin',
+    });
+    expect(promote.status).toBe(200);
+    expect(((await promote.json()) as { member: { role: string } }).member.role).toBe('admin');
+
+    // Ana ya es admin, pero repartir permisos sigue siendo del owner (RN-04).
+    const porAdmin = await req('PATCH', `members/${betoRow?.id ?? ''}`, ana.token, ctx.orgId, {
+      role: 'admin',
+    });
+    expect(porAdmin.status).toBe(403);
+    expect(((await porAdmin.json()) as { error: { code: string } }).error.code).toBe('FORBIDDEN_ROLE');
+
+    // Un admin sí puede seguir editando la ficha: solo el rol le está vedado.
+    const notas = await req('PATCH', `members/${betoRow?.id ?? ''}`, ana.token, ctx.orgId, {
+      adminNotes: 'entrena a la mañana',
+    });
+    expect(notas.status).toBe(200);
+
+    // Degradar al owner no se puede: la org se quedaría sin dueño.
+    const degradarOwner = await req('PATCH', `members/${ownerRow?.id ?? ''}`, ctx.owner.token, ctx.orgId, {
+      role: 'athlete',
+    });
+    expect(degradarOwner.status).toBe(403);
+    expect(((await degradarOwner.json()) as { error: { code: string } }).error.code).toBe(
+      'CANNOT_MODIFY_OWNER',
+    );
+
+    // Y el owner puede devolver a Ana a atleta.
+    const demote = await req('PATCH', `members/${anaRow?.id ?? ''}`, ctx.owner.token, ctx.orgId, {
+      role: 'athlete',
+    });
+    expect(demote.status).toBe(200);
+    expect(((await demote.json()) as { member: { role: string } }).member.role).toBe('athlete');
+  });
+
+  it('el rol owner no se puede pedir por PATCH: la titularidad no se transfiere así', async () => {
+    const ctx = await createOrgCtx('own-transfer@test.com', 'Transfer Gym');
+    const member = await preload(ctx, 'Aspirante');
+    const res = await req('PATCH', `members/${member.id}`, ctx.owner.token, ctx.orgId, {
+      role: 'owner',
+    });
+    expect(res.status).toBe(400);
+    expect(((await res.json()) as { error: { code: string } }).error.code).toBe('VALIDATION_ERROR');
+  });
+
   it('profile parcial no pisa el resto', async () => {
     const ctx = await createOrgCtx('own-i@test.com', 'Partial Gym');
     const member = await preload(ctx, 'Caro', {});

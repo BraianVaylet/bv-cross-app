@@ -1,9 +1,10 @@
-import type {
-  CreateMemberBody,
-  MemberDto,
-  MembersQuery,
-  Page,
-  UpdateMemberBody,
+import {
+  can,
+  type CreateMemberBody,
+  type MemberDto,
+  type MembersQuery,
+  type Page,
+  type UpdateMemberBody,
 } from '@bv/contracts';
 import { ObjectId } from 'mongodb';
 import type { AppVariables } from '../../app.js';
@@ -90,8 +91,12 @@ export async function update(
   const id = new ObjectId(memberId);
   const current = await findMemberById(orgId, id);
   if (!current) throw notFound();
-  if (current.role === 'owner' && body.status !== undefined) {
-    throw new DomainError('CANNOT_MODIFY_OWNER', 'La cuenta owner no se puede deshabilitar.');
+  if (current.role === 'owner' && (body.status !== undefined || body.role !== undefined)) {
+    // El owner no se deshabilita ni se degrada: sería quedarse sin dueño.
+    throw new DomainError('CANNOT_MODIFY_OWNER', 'La cuenta owner no se puede modificar.');
+  }
+  if (body.role !== undefined && !can(org.role, 'org:manage-admins')) {
+    throw new DomainError('FORBIDDEN_ROLE', 'Solo el dueño puede cambiar roles.');
   }
   const set: Record<string, unknown> = {};
   for (const [key, value] of Object.entries(body.profile ?? {})) {
@@ -99,6 +104,7 @@ export async function update(
   }
   if (body.adminNotes !== undefined) set.adminNotes = body.adminNotes;
   if (body.status !== undefined) set.status = body.status;
+  if (body.role !== undefined) set.role = body.role;
   if (Object.keys(set).length > 0) await updateMember(orgId, id, set);
   return get(org, memberId);
 }

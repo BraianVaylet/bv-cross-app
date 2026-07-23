@@ -1,13 +1,22 @@
 import type {
+  AssignmentDto,
+  CreateAssignmentBody,
+  CreateMemberBody,
+  CreateExerciseBody,
   CreateOrgBody,
   CreatePackBody,
   CreateTemplateBody,
   LoginResponseDto,
+  MemberDto,
   MembershipSummaryDto,
+  ExerciseDto,
   OrgDto,
   PackDto,
   TemplateDto,
+  UpdateMemberBody,
+  UpdateExerciseBody,
   UpdateOrgBody,
+  UpdatePackBody,
   UserDto,
 } from '@bv/contracts';
 import { ApiError, request } from './client';
@@ -62,15 +71,70 @@ export const api = {
         body: { code },
       }),
   },
+  members: {
+    list: (params: { q?: string; status?: string; after?: string; limit?: number } = {}) => {
+      const query = new URLSearchParams();
+      if (params.q) query.set('q', params.q);
+      if (params.status) query.set('status', params.status);
+      if (params.after) query.set('after', params.after);
+      query.set('limit', String(params.limit ?? 25));
+      return request<{ items: MemberDto[]; nextCursor: string | null }>(
+        `/api/v1/members?${query.toString()}`,
+      );
+    },
+    get: (id: string) => request<{ member: MemberDto }>(`/api/v1/members/${id}`),
+    create: (body: CreateMemberBody) =>
+      request<{ member: MemberDto }>('/api/v1/members', { method: 'POST', body }),
+    update: (id: string, body: UpdateMemberBody) =>
+      request<{ member: MemberDto }>(`/api/v1/members/${id}`, { method: 'PATCH', body }),
+    assignments: (id: string) =>
+      request<{ items: AssignmentDto[] }>(`/api/v1/members/${id}/assignments`),
+    assign: (id: string, body: CreateAssignmentBody) =>
+      request<{ assignment: AssignmentDto }>(`/api/v1/members/${id}/assignments`, {
+        method: 'POST',
+        body,
+      }),
+  },
+  assignments: {
+    cancel: (id: string, reason: string) =>
+      request<{ assignment: AssignmentDto }>(`/api/v1/assignments/${id}/cancel`, {
+        method: 'POST',
+        body: { reason },
+      }),
+  },
+  exercises: {
+    // scope 'org' = catálogo del gimnasio. Con includeArchived el admin ve
+    // también los archivados (RN-19).
+    list: (includeArchived = false) =>
+      request<{ items: ExerciseDto[] }>(
+        `/api/v1/exercises?scope=org${includeArchived ? '&includeArchived=1' : ''}`,
+      ),
+    create: (body: CreateExerciseBody) =>
+      request<{ exercise: ExerciseDto }>('/api/v1/exercises', { method: 'POST', body }),
+    update: (id: string, body: UpdateExerciseBody) =>
+      request<{ exercise: ExerciseDto }>(`/api/v1/exercises/${id}`, { method: 'PATCH', body }),
+    archive: (id: string, archived: boolean) =>
+      request<{ exercise: ExerciseDto }>(
+        `/api/v1/exercises/${id}/${archived ? 'archive' : 'restore'}`,
+        { method: 'POST' },
+      ),
+  },
   templates: {
     list: () => request<{ items: TemplateDto[] }>('/api/v1/templates'),
     create: (body: CreateTemplateBody) =>
       request<{ template: TemplateDto }>('/api/v1/templates', { method: 'POST', body }),
   },
   packs: {
-    list: () => request<{ items: PackDto[] }>('/api/v1/packs'),
+    list: (includeArchived = false) =>
+      request<{ items: PackDto[] }>(`/api/v1/packs${includeArchived ? '?includeArchived=1' : ''}`),
     create: (body: CreatePackBody) =>
       request<{ pack: PackDto }>('/api/v1/packs', { method: 'POST', body }),
+    update: (id: string, body: UpdatePackBody) =>
+      request<{ pack: PackDto }>(`/api/v1/packs/${id}`, { method: 'PATCH', body }),
+    archive: (id: string) =>
+      request<{ pack: PackDto }>(`/api/v1/packs/${id}/archive`, { method: 'POST' }),
+    restore: (id: string) =>
+      request<{ pack: PackDto }>(`/api/v1/packs/${id}/restore`, { method: 'POST' }),
   },
 };
 

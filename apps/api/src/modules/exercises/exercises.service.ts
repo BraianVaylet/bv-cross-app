@@ -12,6 +12,7 @@ import type { ExerciseDoc } from '../../db/types.js';
 import {
   countEntries,
   deletePersonalWithEntries,
+  exercisesWithEntries,
   findCatalogByName,
   findVisible,
   insertExercise,
@@ -22,7 +23,7 @@ import {
 
 type OrgContext = AppVariables['org'];
 
-function toDto(doc: ExerciseDoc): ExerciseDto {
+function toDto(doc: ExerciseDoc, hasEntries?: boolean): ExerciseDto {
   return {
     id: doc._id.toHexString(),
     scope: doc.scope,
@@ -32,6 +33,7 @@ function toDto(doc: ExerciseDoc): ExerciseDto {
     ...(doc.imageUrl !== undefined ? { imageUrl: doc.imageUrl } : {}),
     ...(doc.notes !== undefined ? { notes: doc.notes } : {}),
     ...(doc.archivedAt ? { archivedAt: doc.archivedAt.toISOString() } : {}),
+    ...(hasEntries !== undefined ? { hasEntries } : {}),
     createdAt: doc.createdAt.toISOString(),
     updatedAt: doc.updatedAt.toISOString(),
   };
@@ -53,7 +55,14 @@ export async function list(
     scope: query.scope,
     includeArchived: query.includeArchived,
   });
-  return docs.map(toDto);
+
+  // El CRM (scope 'org', admin) necesita saber cuáles tienen historial para
+  // comunicar TYPE_LOCKED antes del error; el atleta no, y no paga esa query.
+  if (query.scope === 'org' && can(org.role, 'exercises:manage-catalog')) {
+    const withEntries = await exercisesWithEntries(docs.map((d) => d._id));
+    return docs.map((d) => toDto(d, withEntries.has(d._id.toHexString())));
+  }
+  return docs.map((d) => toDto(d));
 }
 
 export async function create(

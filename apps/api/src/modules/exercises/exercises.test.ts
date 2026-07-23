@@ -163,6 +163,31 @@ describe('exercises (F2-01)', () => {
     expect(await errorCode(lockedRes)).toBe('TYPE_LOCKED');
   });
 
+  it('caso 5b: el listado de catálogo del admin trae hasEntries; el del atleta no (F3-08)', async () => {
+    const conHistorial = await createExercise(admin.token, {
+      name: 'Con historial',
+      type: 'weight',
+      scope: 'org',
+    });
+    const sinHistorial = await createExercise(admin.token, {
+      name: 'Sin historial',
+      type: 'weight',
+      scope: 'org',
+    });
+    await addEntry(conHistorial.id, athleteA.id);
+
+    // Admin sobre el catálogo: cada uno sabe si puede cambiar de tipo.
+    const adminList = await call('/api/v1/exercises?scope=org', { token: admin.token });
+    const items = ((await adminList.json()) as { items: { id: string; hasEntries?: boolean }[] }).items;
+    expect(items.find((e) => e.id === conHistorial.id)?.hasEntries).toBe(true);
+    expect(items.find((e) => e.id === sinHistorial.id)?.hasEntries).toBe(false);
+
+    // El atleta ve el mismo catálogo pero sin el flag: no lo necesita ni lo paga.
+    const athleteList = await call('/api/v1/exercises?scope=org', { token: athleteA.token });
+    const athItems = ((await athleteList.json()) as { items: { id: string; hasEntries?: boolean }[] }).items;
+    expect(athItems.find((e) => e.id === conHistorial.id)?.hasEntries).toBeUndefined();
+  });
+
   it('caso 6: DELETE personal borra en cascada sus entries; DELETE de catálogo → 403', async () => {
     const personal = await createExercise(athleteA.token, { name: 'Borrable', type: 'weight' });
     for (let i = 0; i < 3; i += 1) await addEntry(personal.id, athleteA.id);

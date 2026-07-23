@@ -6,11 +6,9 @@
 
 ## 1. Dónde está cada cosa
 
-`main` llega hasta **F3-04**: entró con el PR consolidado **#40** (F4-03..F4-06 + F3-04), que reemplazó a #37-#39.
+`main` llega hasta **F3-08**: entró con el PR consolidado **#43** (F3-05 + F3-07 + F3-08), que reemplazó a #41-#42.
 
-**Queda 1 PR abierto: #43**, con las tres secciones del CRM que siguen — **F3-05** (Clientes), **F3-07** (Packs) y **F3-08** (Ejercicios). Reemplaza a #41 y #42, cerrados sin mergear: su contenido está ahí commit por commit.
-
-Después de mergearlo, `main` queda en **F3 7/12 · F4 6/8**.
+**Queda 1 PR abierto: #44** (F3-06, sección Clases), que sale de `main` limpio.
 
 ### Por qué se consolida en vez de encadenar
 
@@ -25,7 +23,7 @@ Una pila larga obliga a mergear en orden exacto, borrar cada rama para que GitHu
 | **F0** Fundaciones | 5/6 | F0-06: comprar dominio (decisión humana; solo bloquea F6) |
 | **F1** API core | 11/12 | F1-12: deploy de la API — **necesita Atlas M0 + Railway creados por un humano** |
 | **F2** Migración bv-cross | 7/8 | F2-07: deploy del FE — depende de F1-12 |
-| **F3** CRM | 7/12 | `apps/crm` con onboarding, Clientes, Packs y Ejercicios operativos. Faltan F3-06, F3-09..F3-12 |
+| **F3** CRM | 8/12 | `apps/crm` con onboarding, Clientes, Clases, Packs y Ejercicios operativos. Faltan F3-09..F3-12 |
 | **F4** Reservas | 6/8 | **La app del atleta está completa**: reserva, cancela, cambia de horario y ve su saldo. Falta el deploy (F4-07, depende de F1-12) y los E2E (F4-08) |
 | **F5-F6** | — | No arrancadas |
 
@@ -33,7 +31,7 @@ Una pila larga obliga a mergear en orden exacto, borrar cada rama para que GitHu
 
 **API (`apps/api`)** — auth completa (registro, verificación por email, login, refresh rotativo con detección de reuso, reset, cambio de password), multi-tenancy por `X-Org-Id`, organizaciones con joinCode, members (CRM), exercises (catálogo + personales), entries (RMs), schedule (templates + sesiones), packs, assignments y el `booking-service` transaccional (reservar, cancelar, cancelar la clase entera). Dos jobs en el scheduler: `expire-packs` y `materialize-sessions`.
 
-**CRM (`apps/crm`, "BV CRM")** — shell con sidebar en escritorio y barra inferior en el teléfono (`AppShell`, nuevo en `@bv/ui`), guard de rol (solo owner/admin; el atleta que entra por error ve una explicación, no un 403) y **onboarding del dueño**: crear el gimnasio, una clase y un pack —los dos últimos salteables— y el código de organización al final con el mensaje de invitación listo para copiar. **Clientes** (F3-05) ya opera: lista con `DataTable` (tabla en escritorio, cards abajo de 768px), búsqueda server-side con debounce, filtros por estado, alta manual y ficha con packs, asignación con el pago registrado, anulación con motivo, baja/reactivación e invitación al portapapeles. **Packs** (F3-07) también: catálogo con la matriz RN-14 comunicada en el formulario (con clientes vigentes, los campos que les cambiarían el trato llegan deshabilitados y con la explicación), archivar/restaurar y el tab de archivados como historial de precios (RN-15). **Ejercicios** (F3-08) cierra el catálogo: CRUD con `TYPE_LOCKED` comunicado antes del error, preview de imagen con aviso si la URL está rota, archivar/restaurar y **carga rápida de los 12 básicos** para que un box nuevo no arranque vacío. El resto son placeholders que dicen en qué tarea llegan (F3-06, F3-09..F3-11).
+**CRM (`apps/crm`, "BV CRM")** — shell con sidebar en escritorio y barra inferior en el teléfono (`AppShell`, nuevo en `@bv/ui`), guard de rol (solo owner/admin; el atleta que entra por error ve una explicación, no un 403) y **onboarding del dueño**: crear el gimnasio, una clase y un pack —los dos últimos salteables— y el código de organización al final con el mensaje de invitación listo para copiar. **Clientes** (F3-05) ya opera: lista con `DataTable` (tabla en escritorio, cards abajo de 768px), búsqueda server-side con debounce, filtros por estado, alta manual y ficha con packs, asignación con el pago registrado, anulación con motivo, baja/reactivación e invitación al portapapeles. **Packs** (F3-07) también: catálogo con la matriz RN-14 comunicada en el formulario (con clientes vigentes, los campos que les cambiarían el trato llegan deshabilitados y con la explicación), archivar/restaurar y el tab de archivados como historial de precios (RN-15). **Ejercicios** (F3-08) cierra el catálogo: CRUD con `TYPE_LOCKED` comunicado antes del error, preview de imagen con aviso si la URL está rota, archivar/restaurar y **carga rápida de los 12 básicos** para que un box nuevo no arranque vacío. **Clases** (F3-06) cierra la gestión de la agenda: grilla semanal de horarios con **duplicar día**, propagación RN-05 avisada antes de guardar, y calendario de sesiones con anotados, cupo editable y cancelación con devolución. El resto son placeholders que dicen en qué tarea llegan (F3-09..F3-11).
 
 **FE de agenda (`apps/schedule`, "BV Agenda")** — PWA propia del atleta: shell con bottom-nav de 4 secciones (Grilla, Mis reservas, Saldo, Cuenta), auth y join heredados de `apps/cross`, SSO por cookie compartida verificado a mano. **La grilla reserva de verdad** (F4-04): semana navegable con el horizonte como límite, cards con los 6 estados, saldo en el header y confirmación que dice de qué pack sale el crédito. **Mis reservas** (F4-05) muestra la ventana de cancelación antes del error ("Podés cancelar hasta las 16:00"), avisa si el crédito vuelve a un pack vencido y permite cambiar de horario (cancelar + volver a la grilla en ese día). **Saldo** (F4-06) separa activos e historial, marca cuál se consume primero y cuál todavía no arrancó.
 
@@ -69,6 +67,7 @@ Las que no estaban en los docs de diseño y se resolvieron al implementar:
 | Atleta que abre el CRM | Pantalla que lo explica, **no** onboarding | Mandarlo al wizard le crearía un gimnasio sin querer. Solo quien no tiene ninguna membresía cae en el onboarding (F3-04) |
 | `AppShell` y el router | El shell recibe `currentPath` y un `renderLink`; no importa react-router | Queda testeable sin montar rutas y reutilizable por cualquier app admin. El `active` viaja al link para que ponga `aria-current` |
 | Saldo del cliente en la tabla | **No** por fila: se ve al entrar a la ficha | Traer los packs de cada cliente en la lista serían N+1 requests en la pantalla que más se abre. La columna quedó para la última reserva (F4) |
+| `formatInOrgTz` de la spec de F3-06 | **No se creó**: se reusa `timeInTz` de `@bv/ui` | Ya existía compartido desde F4-04, con el test del borde 23:30 AR. Duplicarlo en `apps/crm/src/lib` habría dado dos fuentes para la misma regla |
 | `hasEntries` en el `exerciseDto` | Solo en el **listado admin del catálogo**, con un `distinct` por lote | El CRM lo necesita para comunicar TYPE_LOCKED; el atleta no, y así no paga esa query. Un count por ejercicio habría sido N+1 |
 | Carga del set básico | Un duplicado **no aborta el lote**: se cuenta y sigue | El dueño que ya cargó tres a mano no tiene que adivinar cuáles faltan |
 | Matriz RN-14 en la UI | Los campos bloqueados llegan `disabled` **con la explicación arriba** | Descubrir la regla con un 409 después de completar el formulario es la peor forma de enterarse. El servidor la sigue aplicando igual |
@@ -90,7 +89,7 @@ Las que no estaban en los docs de diseño y se resolvieron al implementar:
 
 ## 5. Cómo retomar
 
-1. **Mergear #43** (§1). Recién ahí `main` refleja todo y PLAN.md queda al día.
+1. **Mergear #44** (§1). Recién ahí `main` refleja todo y PLAN.md queda al día.
 2. Antes de tomar una tarea, leer su spec completa en `docs/tasks/F*.md` — son el contrato (objetivo, casos de prueba, criterios de aceptación).
 3. **Todo endpoint nuevo se registra en `apps/api/src/route-policies.ts`** en el mismo PR, con su factory en `src/test/factories.ts` si recibe un `:id`. Si no, el build falla (por diseño).
 4. Si el módulo introduce datos, extender el seed (`src/seed.ts`) en el mismo PR.
@@ -99,7 +98,7 @@ Las que no estaban en los docs de diseño y se resolvieron al implementar:
 
 ### Próximas tareas sin bloqueo humano
 
-- **F3-06, F3-09, F3-10, F3-11** — el resto de las secciones del CRM, independientes entre sí. La más grande es F3-06 (Clases: grilla de templates, calendario de sesiones y anotados); la más chica, F3-11 (Configuración).
+- **F3-09, F3-10, F3-11** — lo que queda del CRM, independiente entre sí: evolución de atletas, dashboard con stats y configuración de la org.
 - F4-07 y F3-12 (deploys) están bloqueados por F1-12; F4-08 (E2E) conviene después del deploy.
 
 ### Deuda anotada durante esta fase

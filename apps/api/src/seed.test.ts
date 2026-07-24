@@ -136,7 +136,9 @@ describe('seed de desarrollo (F1-11)', () => {
       .find({ orgId: org?._id, status: 'active', expiresAt: { $lte: new Date(now + 7 * 86_400_000) } })
       .toArray();
     expect(porVencer).toHaveLength(1);
-    expect(porVencer[0]!.snapshot.classCount - porVencer[0]!.classesUsed).toBeGreaterThan(0);
+    const saldo = porVencer.map((a) => a.snapshot.classCount - a.classesUsed);
+    expect(saldo).toEqual([expect.any(Number)]);
+    expect(saldo[0]).toBeGreaterThan(0);
   });
 
   it('el catálogo y las cargas alimentan el progreso y el feed (F3-09)', async () => {

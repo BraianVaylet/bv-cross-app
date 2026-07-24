@@ -19,7 +19,7 @@
 | F2 | Migración de bv-cross (cargas) | 8 | [docs/tasks/F2.md](docs/tasks/F2.md) | 🔨 7/8 |
 | F3 | CRM: gestión del gimnasio | 12 | [docs/tasks/F3.md](docs/tasks/F3.md) | 🔨 7/12 |
 | F4 | bv-cross-schedule: reservas | 8 | [docs/tasks/F4.md](docs/tasks/F4.md) | 🔨 6/8 |
-| F5 | Estadísticas + hardening | 7 | [docs/tasks/F5.md](docs/tasks/F5.md) | — |
+| F5 | Estadísticas + hardening | 7 | [docs/tasks/F5.md](docs/tasks/F5.md) | 🔨 1/7 |
 | F6 | Go-live | 5 | [docs/tasks/F6.md](docs/tasks/F6.md) | — |
 
 ---
@@ -92,7 +92,7 @@
 - [ ] **F5-03** 🟢 Sonnet — Sentry (API + 3 FEs) + redacción de logs verificada por test
 - [ ] **F5-04** 🔴 Fable — Auditoría de seguridad pre-lanzamiento (procedimiento adversarial + informe con hallazgos)
 - [ ] **F5-05** 🟡 Opus — Performance pass: 5 presupuestos medidos antes/después (bundles, Lighthouse, k6, explain)
-- [ ] **F5-06** 🟢 Haiku — Job semanal de auditoría de dependencias (issue automática sin duplicar)
+- [x] **F5-06** 🟢 Haiku — Job semanal de auditoría de dependencias (issue automática sin duplicar)
 - [ ] **F5-07** 🟡 Sonnet — Backup nocturno cifrado a R2 + ensayo de restore cronometrado (RTO < 1 h)
 
 ## F6 — Go-live · [specs](docs/tasks/F6.md)

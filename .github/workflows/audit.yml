@@ -1,0 +1,149 @@
+name: Auditoría de dependencias
+
+# Los advisories no salen cuando uno abre un PR: salen cualquier día, y el CI
+# se entera recién cuando alguien empuja algo. Pasó dos veces en F3 (@hono/
+# node-server el 21/07, react-router el 24/07) y las dos veces volteó todas las
+# ramas abiertas a la vez. Este job pregunta los lunes y deja una issue, así el
+# hallazgo llega como trabajo planificado y no como un PR en rojo.
+on:
+  schedule:
+    - cron: '0 9 * * 1' # lunes 09:00 UTC (06:00 AR)
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  issues: write
+
+concurrency:
+  group: audit-deps
+  cancel-in-progress: false
+
+env:
+  # Marcador en el título: es como el job encuentra su propia issue para
+  # actualizarla en vez de abrir una nueva cada lunes.
+  ISSUE_TITLE: '🔒 Auditoría de dependencias — hallazgos abiertos'
+
+jobs:
+  audit:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+
+      - uses: pnpm/action-setup@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - run: pnpm install --frozen-lockfile
+
+      # Los dos escáneres corren SIEMPRE, aunque el primero encuentre algo:
+      # cortar en el primero esconde la mitad del problema justo en el reporte
+      # que existe para no tener que ir a buscarlo.
+      - name: pnpm audit
+        id: pnpm_audit
+        continue-on-error: true
+        run: |
+          set -o pipefail
+          pnpm audit --prod --audit-level=high 2>&1 | tee pnpm-audit.txt
+
+      - name: osv-scanner
+        id: osv
+        continue-on-error: true
+        uses: google/osv-scanner-action/osv-scanner-action@v2.3.8
+        with:
+          scan-args: |-
+            --format=markdown
+            --output=osv-report.md
+            --lockfile=pnpm-lock.yaml
+
+      - name: Armar el reporte
+        id: report
+        run: |
+          {
+            echo "Corrida: [\`${GITHUB_RUN_ID}\`](${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}) · commit \`${GITHUB_SHA:0:7}\` · $(date -u '+%Y-%m-%d %H:%M UTC')"
+            echo
+            echo "## osv-scanner"
+            echo
+            # El reporte del escáner corre adentro de un contenedor; si por lo
+            # que sea no dejó el archivo, se dice y se apunta al log en vez de
+            # publicar una issue vacía que no sirve para nada.
+            if [ -s osv-report.md ]; then cat osv-report.md; else echo "_Sin archivo de reporte — ver el log de la corrida._"; fi
+            echo
+            echo "## pnpm audit --prod --audit-level=high"
+            echo
+            echo '```'
+            if [ -s pnpm-audit.txt ]; then tail -c 20000 pnpm-audit.txt; else echo "(sin salida)"; fi
+            echo '```'
+            echo
+            echo "---"
+            echo "Esta issue la mantiene \`.github/workflows/audit.yml\`: mientras haya hallazgos se actualiza sola cada lunes, y se cierra sola cuando la auditoría vuelve a dar limpio."
+          } > report.md
+
+          if [ "${{ steps.pnpm_audit.outcome }}" = "failure" ] || [ "${{ steps.osv.outcome }}" = "failure" ]; then
+            echo "limpio=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "limpio=true" >> "$GITHUB_OUTPUT"
+          fi
+
+      # `gh` en vez de una action de terceros: es un job de cadena de suministro,
+      # sumarle una dependencia más para escribir una issue sería contradictorio.
+      # Viene preinstalado en el runner y usa el GITHUB_TOKEN del propio job.
+      - name: Abrir o actualizar la issue
+        if: steps.report.outputs.limpio == 'false'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          # Se listan y se filtra por título exacto, sin `--search`: el índice de
+          # búsqueda de GitHub tarda en ponerse al día y una issue recién creada
+          # puede no aparecer todavía — que es justo el caso en el que duplicar.
+          EXISTENTE=$(gh issue list --state open --label security --limit 100 --json number,title \
+            --jq "[.[] | select(.title == \"$ISSUE_TITLE\")] | .[0].number // empty")
+
+          if [ -n "$EXISTENTE" ]; then
+            # Se reescribe el cuerpo y se comenta: el cuerpo es siempre el estado
+            # de hoy y los comentarios quedan como historia de cuánto lleva abierto.
+            gh issue edit "$EXISTENTE" --body-file report.md
+            gh issue comment "$EXISTENTE" --body "Sigue habiendo hallazgos en la corrida del $(date -u '+%Y-%m-%d'). Detalle actualizado en la descripción."
+            echo "issue #$EXISTENTE actualizada"
+          else
+            gh label create security --color d73a4a --description "Hallazgos de la auditoría de dependencias" 2>/dev/null || true
+            NUEVA=$(gh issue create --title "$ISSUE_TITLE" --label security --body-file report.md)
+            echo "issue creada: $NUEVA"
+          fi
+
+      # Si se arregló, la issue se cierra sola. Una issue de seguridad que queda
+      # abierta después de resuelta entrena a ignorar la etiqueta.
+      - name: Cerrar la issue si quedó limpio
+        if: steps.report.outputs.limpio == 'true'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          # Se listan y se filtra por título exacto, sin `--search`: el índice de
+          # búsqueda de GitHub tarda en ponerse al día y una issue recién creada
+          # puede no aparecer todavía — que es justo el caso en el que duplicar.
+          EXISTENTE=$(gh issue list --state open --label security --limit 100 --json number,title \
+            --jq "[.[] | select(.title == \"$ISSUE_TITLE\")] | .[0].number // empty")
+          if [ -n "$EXISTENTE" ]; then
+            gh issue close "$EXISTENTE" --comment "Auditoría limpia en la corrida del $(date -u '+%Y-%m-%d'). Se cierra sola; si vuelve a haber hallazgos se abre una nueva."
+            echo "issue #$EXISTENTE cerrada"
+          else
+            echo "auditoría limpia, sin issue abierta"
+          fi
+
+      # El job no falla por los hallazgos: su producto es la issue. Si fallara,
+      # el mail de "workflow failed" competiría con la issue por la atención y
+      # las Actions de scheduled runs se desactivan solas tras 60 días de fallos.
+      - name: Resumen
+        run: |
+          echo "### Auditoría de dependencias" >> "$GITHUB_STEP_SUMMARY"
+          if [ "${{ steps.report.outputs.limpio }}" = "true" ]; then
+            echo "Sin hallazgos." >> "$GITHUB_STEP_SUMMARY"
+          else
+            echo "Con hallazgos — ver la issue etiquetada \`security\`." >> "$GITHUB_STEP_SUMMARY"
+            cat report.md >> "$GITHUB_STEP_SUMMARY"
+          fi

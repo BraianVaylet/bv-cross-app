@@ -311,7 +311,7 @@ export function ClientDetail() {
         <Button
           variant="ghost"
           onClick={() => {
-            navigate('/clients');
+            void navigate('/clients');
           }}
         >
           Volver a la lista

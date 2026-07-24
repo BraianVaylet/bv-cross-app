@@ -51,7 +51,7 @@ export function CrmLayout() {
       {...(user?.name !== undefined ? { userName: user.name } : {})}
       onLogout={() => {
         void logout().then(() => {
-          navigate('/login', { replace: true });
+          void navigate('/login', { replace: true });
         });
       }}
     >

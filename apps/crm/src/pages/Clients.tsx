@@ -177,7 +177,7 @@ export function Clients() {
           rows={items}
           rowKey={(m) => m.id}
           onRowClick={(m) => {
-            navigate(`/clients/${m.id}`);
+            void navigate(`/clients/${m.id}`);
           }}
           hasMore={cursor !== null}
           loadingMore={loadingMore}
@@ -203,7 +203,7 @@ export function Clients() {
         onCreated={(member) => {
           setNewOpen(false);
           toast.show('Cliente cargado.');
-          navigate(`/clients/${member.id}`);
+          void navigate(`/clients/${member.id}`);
         }}
       />
     </div>

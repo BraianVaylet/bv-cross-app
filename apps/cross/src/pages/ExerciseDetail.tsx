@@ -166,7 +166,7 @@ export function ExerciseDetail() {
     setDeleting(true);
     try {
       await api.exercises.remove(id);
-      navigate('/', { replace: true });
+      void navigate('/', { replace: true });
     } catch (err) {
       setError(errorMessage(err));
       setConfirmDelete(false);

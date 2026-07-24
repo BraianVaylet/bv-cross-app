@@ -41,7 +41,7 @@ export function SelectOrg() {
               type="button"
               onClick={() => {
                 selectOrg(m.orgId);
-                navigate('/', { replace: true });
+                void navigate('/', { replace: true });
               }}
               className="flex w-full items-center gap-3 rounded-2xl border border-line bg-surface p-4 text-left transition-colors hover:border-accent/40 active:bg-raised"
             >

@@ -46,18 +46,24 @@ export function Settings() {
   const [org, setOrg] = useState<OrgDto | null>(null);
   const [loadError, setLoadError] = useState<string | null>(null);
 
-  const load = useCallback(async (): Promise<void> => {
+  const load = useCallback(async (run?: { cancelled: boolean }): Promise<void> => {
     setLoadError(null);
     try {
       const { org: current } = await api.orgs.current();
+      if (run?.cancelled) return;
       setOrg(current);
     } catch (err) {
+      if (run?.cancelled) return;
       setLoadError(errorMessage(err));
     }
   }, []);
 
   useEffect(() => {
-    void load();
+    const run = { cancelled: false }; // propiedad mutable: StrictMode monta dos veces
+    void load(run);
+    return () => {
+      run.cancelled = true;
+    };
   }, [load]);
 
   if (loadError) {

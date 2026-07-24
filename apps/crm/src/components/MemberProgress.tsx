@@ -20,35 +20,53 @@ export function MemberProgress({ memberId }: { memberId: string }) {
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
+    const run = { cancelled: false }; // propiedad mutable: StrictMode monta dos veces
     void (async () => {
       setError(null);
       try {
         const { items } = await api.stats.memberExercises(memberId);
+        if (run.cancelled) return;
         setExercises(items);
         const first = items[0];
         if (first) setSelected(first.id);
       } catch (err) {
+        if (run.cancelled) return;
         setError(errorMessage(err));
       }
     })();
+    return () => {
+      run.cancelled = true;
+    };
   }, [memberId]);
 
-  const load = useCallback(async (): Promise<void> => {
-    if (selected === '') return;
-    setLoadingProgress(true);
-    setError(null);
-    try {
-      const { progress: p } = await api.stats.memberProgress(memberId, selected);
-      setProgress(p);
-    } catch (err) {
-      setError(errorMessage(err));
-    } finally {
-      setLoadingProgress(false);
-    }
-  }, [memberId, selected]);
+  // La guarda acá no es solo por el desmontaje: `load` depende de `selected`,
+  // así que cambiar de ejercicio con la request anterior en vuelo dejaría que
+  // la vieja pise el gráfico de la nueva.
+  const load = useCallback(
+    async (run?: { cancelled: boolean }): Promise<void> => {
+      if (selected === '') return;
+      setLoadingProgress(true);
+      setError(null);
+      try {
+        const { progress: p } = await api.stats.memberProgress(memberId, selected);
+        if (run?.cancelled) return;
+        setProgress(p);
+      } catch (err) {
+        if (run?.cancelled) return;
+        setError(errorMessage(err));
+      } finally {
+        if (!run?.cancelled) setLoadingProgress(false);
+      }
+    },
+    [memberId, selected],
+  );
 
   useEffect(() => {
-    void load();
+    const run = { cancelled: false };
+    void load(run);
+    return () => {
+      run.cancelled = true;
+    };
   }, [load]);
 
   if (error && exercises === null) return <ErrorBanner>{error}</ErrorBanner>;

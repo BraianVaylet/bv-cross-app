@@ -54,22 +54,34 @@ export function ClientDetail() {
 
   usePageTitle(member ? (member.profile.displayName ?? 'Cliente') : 'Cliente');
 
-  const load = useCallback(async (): Promise<void> => {
-    setLoadError(null);
-    try {
-      const [{ member: m }, { items }] = await Promise.all([
-        api.members.get(id),
-        api.members.assignments(id),
-      ]);
-      setMember(m);
-      setAssignments(items);
-    } catch (err) {
-      setLoadError(errorMessage(err));
-    }
-  }, [id]);
+  // `run` llega solo desde el efecto: si se navega a otra ficha antes de que
+  // conteste la API, la respuesta vieja no pisa a la nueva. El botón de
+  // reintento lo llama sin argumento, así que nunca se cancela.
+  const load = useCallback(
+    async (run?: { cancelled: boolean }): Promise<void> => {
+      setLoadError(null);
+      try {
+        const [{ member: m }, { items }] = await Promise.all([
+          api.members.get(id),
+          api.members.assignments(id),
+        ]);
+        if (run?.cancelled) return;
+        setMember(m);
+        setAssignments(items);
+      } catch (err) {
+        if (run?.cancelled) return;
+        setLoadError(errorMessage(err));
+      }
+    },
+    [id],
+  );
 
   useEffect(() => {
-    void load();
+    const run = { cancelled: false }; // propiedad mutable: StrictMode monta dos veces
+    void load(run);
+    return () => {
+      run.cancelled = true;
+    };
   }, [load]);
 
   const changeStatus = async (status: 'active' | 'disabled'): Promise<void> => {
@@ -459,9 +471,11 @@ function AssignPackModal({
 
   useEffect(() => {
     if (!open) return;
+    const run = { cancelled: false }; // propiedad mutable: StrictMode monta dos veces
     void (async () => {
       try {
         const { items } = await api.packs.list();
+        if (run.cancelled) return;
         const activos = items.filter((p) => p.archivedAt === undefined);
         setPacks(activos);
         const first = activos[0];
@@ -470,9 +484,13 @@ function AssignPackModal({
           setAmount(String(first.price));
         }
       } catch (err) {
+        if (run.cancelled) return;
         setError(errorMessage(err));
       }
     })();
+    return () => {
+      run.cancelled = true;
+    };
   }, [open]);
 
   const selected = packs?.find((p) => p.id === packId);

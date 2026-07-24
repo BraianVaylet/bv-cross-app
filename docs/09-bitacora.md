@@ -6,7 +6,7 @@
 
 ## 1. Dónde está cada cosa
 
-`main` llega hasta **F3-08** (PR consolidado #43). Todo lo demás está en **un único PR: #50**, que reemplaza a #44, #45, #46, #47, #48 y #49.
+`main` llega hasta **F3-08** (PR consolidado #43). Todo lo demás está en **un único PR: #51**, que reemplaza a #44, #45, #46, #47, #48, #49 y #50.
 
 | Reemplaza | Qué trae |
 |---|---|
@@ -16,16 +16,17 @@
 | #46 | F3-09, evolución de atletas: módulo `stats`, `SimpleChart`, feed de PRs |
 | #47 | F3-10, dashboard del CRM + `loadgen` |
 | #49 | F5-06, job semanal de auditoría de dependencias |
+| #50 | Guarda de cancelación en las cargas por efecto de los tres FEs |
 
-Con #50 adentro, `main` queda en **F3 11/12 · F4 6/8 · F5 1/7**. Del CRM solo falta **F3-12** (deploy), bloqueado por F1-12.
+Con #51 adentro, `main` queda en **F3 11/12 · F4 6/8 · F5 1/7**. Del CRM solo falta **F3-12** (deploy), bloqueado por F1-12.
 
-**Por qué se consolidó otra vez.** Los seis salían de `main` y eran independientes, así que en principio se mergeaban en cualquier orden. Lo que los ató fue el advisory de `react-router`: `osv-scanner` corta con cualquier vulnerabilidad conocida y sin umbral de severidad, así que **cinco de los seis quedaron en rojo por una dependencia, no por su código** — en todos, `osv-scanner` era el único paso que fallaba. El fix vivía en el sexto. Eso convertía "en cualquier orden" en "uno primero y después re-correr los otros cinco a mano", que es exactamente el costo que la regla de consolidar existe para evitar.
+**Por qué se consolidó otra vez.** Los siete salían de `main` y eran independientes, así que en principio se mergeaban en cualquier orden. Lo que los ató fue el advisory de `react-router`: `osv-scanner` corta con cualquier vulnerabilidad conocida y sin umbral de severidad, así que **todos menos uno quedaron en rojo por una dependencia, no por su código** — en todos, `osv-scanner` era el único paso que fallaba. El fix vivía en el sexto. Eso convertía "en cualquier orden" en "uno primero y después re-correr los otros seis a mano", que es exactamente el costo que la regla de consolidar existe para evitar. Y al juntarlos aparecieron **dos bugs que ninguno podía ver solo**: los `navigate()` del Dashboard sin `void` (el router nuevo estaba en otro PR) y las cinco pantallas nuevas sin guarda de cancelación (el fix estaba en otro PR).
 
 ### Por qué se consolida en vez de encadenar
 
 Una pila larga obliga a mergear en orden exacto, borrar cada rama para que GitHub retargetee la siguiente, y aguantar que un advisory nuevo voltee el CI de todas a la vez. Un PR consolidado se revisa igual por commits (la historia individual queda intacta) y entra de una.
 
-> Pasó cinco veces: #29 reemplazó a #19-#28, #36 a #30-#35, #40 a #37-#39, #43 a #41-#42 y #50 a #44-#49. **Regla: no encadenar más de 2 o 3 PRs.** Si una tarea nueva necesita algo que está en un PR sin mergear, conviene pedir el merge antes de arrancar.
+> Pasó cinco veces: #29 reemplazó a #19-#28, #36 a #30-#35, #40 a #37-#39, #43 a #41-#42 y #51 a #44-#50. **Regla: no encadenar más de 2 o 3 PRs.** Si una tarea nueva necesita algo que está en un PR sin mergear, conviene pedir el merge antes de arrancar.
 
 ## 2. Estado por fase
 
@@ -104,6 +105,8 @@ Las que no estaban en los docs de diseño y se resolvieron al implementar:
 | CRM como PWA | **No** | Se usa desde el mostrador o el teléfono del dueño, siempre con conexión. Un service worker en una app que cambia seguido es un problema de despliegue, no una mejora |
 | Password en la migración v1→v2 | No se migra el hash: se crea una **aleatoria** y el dueño usa "olvidé mi contraseña" | Cambia el esquema de identidad (alias → email) |
 | DST con hora local inexistente | Se usa el resultado determinista de la librería (sesión corrida) | Preferible a dejar un hueco silencioso en la grilla |
+| Cancelar las cargas disparadas por efecto | Guarda `run = { cancelled: false }` **inline**, como en `AuthContext`; **no** un hook `useAsyncEffect` | Los `setState` viven adentro de `load`, y `load` lo comparten el efecto y las acciones del usuario (reintento, refetch después de guardar). Un hook genérico no puede meter la guarda ahí adentro: ahorraría 3 líneas de efecto y obligaría igual a tocar cada `load`. A cambio serían 3 archivos nuevos duplicados en `src/lib` — justo la deuda que F6-05 quiere cerrar |
+| Quién recibe la guarda | La toma `load` como parámetro **opcional**: el efecto la pasa, los handlers no | Un `isMounted` por ref no arregla el pisado de datos (es por request, no por montaje). Con el parámetro opcional, los botones de reintento y los refetch post-mutación siguen andando sin tocarlos |
 
 ## 4. Trampas de infraestructura (que van a volver)
 
@@ -113,7 +116,7 @@ Las que no estaban en los docs de diseño y se resolvieron al implementar:
 - **`osv-scanner` corta con CUALQUIER vulnerabilidad conocida**, sin umbral de severidad (a diferencia de `pnpm audit --audit-level=high`). El 21/07/26 apareció [GHSA-frvp-7c67-39w9](https://osv.dev/GHSA-frvp-7c67-39w9) en `@hono/node-server` 1.x (path traversal de `serve-static` en hosts Windows: no usamos `serve-static` y la API corre en Linux, impacto real nulo) y volteó el CI de todas las ramas. Se resolvió subiendo a `@hono/node-server@2`: `serve` y `getConnInfo` mantienen la firma — verificado levantando la API contra un Mongo efímero (`/healthz` 200 + login por la ruta rate-limited).
 - **`pnpm audit --prod` puede romperse de un día para el otro** por advisories nuevos en dependencias transitivas de `eslint` (que es dependency real de `@bv/config` porque publica los presets). Se arregla con `overrides` en `pnpm-workspace.yaml` — **acotando la major**: un `>=` puede saltar a una API incompatible (pasó con `brace-expansion`: `minimatch@3` murió con "expand is not a function").
 - **`osv-scanner` volvió a cortar el 24/07/26**, ahora con tres advisories de `react-router` 6.30.4 ([GHSA-337j-9hxr-rhxg](https://osv.dev/GHSA-337j-9hxr-rhxg), [GHSA-wrjc-x8rr-h8h6](https://osv.dev/GHSA-wrjc-x8rr-h8h6), [GHSA-jjmj-jmhj-qwj2](https://osv.dev/GHSA-jjmj-jmhj-qwj2)): cuatro PRs en rojo por una dependencia. **El patrón ya tiene forma**: sale un advisory, se caen todas las ramas a la vez, y la salida barata es un PR de una sola cosa que sale de `main` y se mergea primero. Como CI corre `on: pull_request` (sobre el merge contra `main`), un re-run deja verdes a los demás sin tocarles una línea. En este caso el fix era subir a 7.x —en 6.x no hay— y el único cambio de código fue que `navigate()` ahora devuelve una promesa: 25 llamadas con `void` adelante.
-- **Flake de CI: `ReferenceError: window is not defined` en react-dom.** Aparece como *unhandled error* al final de la suite de un FE, con **los 50 tests en verde** — vitest igual marca la corrida como fallada. No reproduce local (3 corridas seguidas limpias); sale en CI, que es más lento. Causa: las pantallas cargan con `useEffect(() => { void load(); })` y `load` hace `setState` cuando resuelve. Si el test no espera esa promesa, la resolución cae **después del teardown del archivo**, cuando jsdom ya destruyó `window`, y react-dom explota adentro de `dispatchSetState`. El patrón correcto ya está escrito en `AuthContext` de las tres apps: un `run = { cancelled: false }` que el cleanup del efecto da vuelta y que se chequea antes de cada `setState`. Falta replicarlo en los ~10 `load` de pantalla (crm: Clients, ClientDetail, Packs, Exercises, Dashboard, MemberProgress · schedule: Grid, MyBookings, Credits · cross: EditExercise). **No es cosmético**: el mismo `setState` tardío puede pisar datos de una pantalla que el usuario ya cambió. Mientras tanto, si CI se cae con esto y los tests están todos en verde, es este flake y basta re-correr.
+- **`ReferenceError: window is not defined` como *unhandled error* al final de la suite de un FE**, con todos los tests en verde y la corrida marcada como fallada igual (pasó en el PR #47). Es un `setState` que llega **después** de que vitest desarmó el entorno jsdom: la pantalla se desmontó, pero el `load` que disparó su `useEffect` seguía en vuelo y al resolver entró a `dispatchSetState` de react-dom con el `window` ya borrado. No es un problema de infra: es la falta de guarda de cancelación en el efecto. El mismo agujero pisa datos en producción (cambiar de tab o de ficha y que vuelva la respuesta de la anterior). Arreglado en las **19** cargas por efecto de los tres FEs con el patrón de `AuthContext` (§3); si aparece un `useEffect` nuevo que hace fetch, va con guarda. **Las últimas 5 aparecieron recién al consolidar**: Dashboard, Clases, Configuración, `MemberProgress` y `PrsFeed` no existían en `main`, así que el PR que arregló el resto no podía verlas. En `MemberProgress` la guarda no es solo por el desmontaje —`load` depende del ejercicio elegido, así que cambiar de ejercicio con la request anterior en vuelo dejaba que la vieja pisara el gráfico de la nueva— y tiene su test, que falla si se saca la guarda.
 - **`vi.setSystemTime` expira los JWT del setup** (TTL 15 min): en tests con clock fijo hay que emitir un token fresco dentro del clock.
 - **pnpm reenvía el separador `--`** a los scripts; `parseArgs` de Node lo toma como posicional y explota. Filtrarlo antes de parsear.
 - **Commits multilínea**: usar `git commit -F <archivo>`; los here-strings de PowerShell se cuelan como `@` en el mensaje.

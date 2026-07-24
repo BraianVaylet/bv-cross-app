@@ -140,18 +140,24 @@ export function Dashboard() {
   const [data, setData] = useState<DashboardDto | null>(null);
   const [loadError, setLoadError] = useState<string | null>(null);
 
-  const load = useCallback(async (): Promise<void> => {
+  const load = useCallback(async (run?: { cancelled: boolean }): Promise<void> => {
     setLoadError(null);
     try {
       const { dashboard } = await api.stats.dashboard();
+      if (run?.cancelled) return;
       setData(dashboard);
     } catch (err) {
+      if (run?.cancelled) return;
       setLoadError(errorMessage(err));
     }
   }, []);
 
   useEffect(() => {
-    void load();
+    const run = { cancelled: false }; // propiedad mutable: StrictMode monta dos veces
+    void load(run);
+    return () => {
+      run.cancelled = true;
+    };
   }, [load]);
 
   if (loadError) {

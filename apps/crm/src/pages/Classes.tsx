@@ -76,19 +76,25 @@ function TemplateGrid() {
   const [deleting, setDeleting] = useState(false);
   const [duplicating, setDuplicating] = useState<TemplateDto[] | null>(null);
 
-  const load = useCallback(async (): Promise<void> => {
+  const load = useCallback(async (run?: { cancelled: boolean }): Promise<void> => {
     setLoadError(null);
     setItems(null);
     try {
       const { items: list } = await api.templates.list();
+      if (run?.cancelled) return;
       setItems(list);
     } catch (err) {
+      if (run?.cancelled) return;
       setLoadError(errorMessage(err));
     }
   }, []);
 
   useEffect(() => {
-    void load();
+    const run = { cancelled: false }; // propiedad mutable: StrictMode monta dos veces
+    void load(run);
+    return () => {
+      run.cancelled = true;
+    };
   }, [load]);
 
   const upsert = (template: TemplateDto): void => {

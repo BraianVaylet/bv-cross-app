@@ -96,26 +96,38 @@ export function ExerciseDetail() {
   const [deleting, setDeleting] = useState(false);
   const [showImage, setShowImage] = useState(false);
 
-  const load = useCallback(async () => {
-    try {
-      const [{ exercise: ex }, page] = await Promise.all([
-        api.exercises.get(id),
-        api.entries.list(id),
-      ]);
-      setExercise(ex);
-      setEntries(page.items);
-      setBaseId((prev) =>
-        prev !== null && page.items.some((e) => e.id === prev) ? prev : (currentRm(page.items)?.id ?? null),
-      );
-    } catch (err) {
-      if (err instanceof ApiError && err.status === 404) setNotFound(true);
-      else setError(errorMessage(err));
-    }
-  }, [id]);
+  // `run` llega solo desde el efecto: si se navega a otro ejercicio antes de
+  // que conteste la API, la respuesta vieja no pisa a la nueva. El refetch de
+  // después de cargar un registro lo llama sin argumento, así que no se cancela.
+  const load = useCallback(
+    async (run?: { cancelled: boolean }) => {
+      try {
+        const [{ exercise: ex }, page] = await Promise.all([
+          api.exercises.get(id),
+          api.entries.list(id),
+        ]);
+        if (run?.cancelled) return;
+        setExercise(ex);
+        setEntries(page.items);
+        setBaseId((prev) =>
+          prev !== null && page.items.some((e) => e.id === prev) ? prev : (currentRm(page.items)?.id ?? null),
+        );
+      } catch (err) {
+        if (run?.cancelled) return;
+        if (err instanceof ApiError && err.status === 404) setNotFound(true);
+        else setError(errorMessage(err));
+      }
+    },
+    [id],
+  );
 
   useEffect(() => {
-    if (/^[0-9a-f]{24}$/i.test(id)) void load();
+    const run = { cancelled: false }; // propiedad mutable: StrictMode monta dos veces
+    if (/^[0-9a-f]{24}$/i.test(id)) void load(run);
     else setNotFound(true);
+    return () => {
+      run.cancelled = true;
+    };
   }, [id, load]);
 
   const list = useMemo(() => entries ?? [], [entries]);

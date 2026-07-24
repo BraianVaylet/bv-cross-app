@@ -73,29 +73,39 @@ export function EditExercise() {
   const [confirmDeleteEx, setConfirmDeleteEx] = useState(false);
   const [deletingEx, setDeletingEx] = useState(false);
 
-  const load = useCallback(async () => {
-    try {
-      const [{ exercise: ex }, page] = await Promise.all([
-        api.exercises.get(id),
-        api.entries.list(id),
-      ]);
-      setExercise(ex);
-      setEntries(page.items);
-      if (!initialized.current) {
-        setName(ex.name);
-        setNotes(ex.notes ?? '');
-        initialized.current = true;
+  // `run` llega solo desde el efecto: si se navega a otro ejercicio antes de
+  // que conteste la API, la respuesta vieja no pisa a la nueva. Los refetch de
+  // después de guardar lo llaman sin argumento, así que nunca se cancelan.
+  const load = useCallback(
+    async (run?: { cancelled: boolean }) => {
+      try {
+        const [{ exercise: ex }, page] = await Promise.all([
+          api.exercises.get(id),
+          api.entries.list(id),
+        ]);
+        if (run?.cancelled) return;
+        setExercise(ex);
+        setEntries(page.items);
+        if (!initialized.current) {
+          setName(ex.name);
+          setNotes(ex.notes ?? '');
+          initialized.current = true;
+        }
+      } catch (err) {
+        if (run?.cancelled) return;
+        if (err instanceof ApiError && err.status === 404) setNotFound(true);
+        else setError(errorMessage(err));
       }
-    } catch (err) {
-      if (err instanceof ApiError && err.status === 404) setNotFound(true);
-      else setError(errorMessage(err));
-    }
-  }, [id]);
+    },
+    [id],
+  );
 
   useEffect(() => {
-    if (/^[0-9a-f]{24}$/i.test(id)) void load();
+    const run = { cancelled: false }; // propiedad mutable: StrictMode monta dos veces
+    if (/^[0-9a-f]{24}$/i.test(id)) void load(run);
     else setNotFound(true);
     return () => {
+      run.cancelled = true;
       window.clearTimeout(flashTimer.current);
       window.clearTimeout(notesFlashTimer.current);
     };

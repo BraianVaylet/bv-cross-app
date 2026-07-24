@@ -86,6 +86,42 @@ describe('MemberProgress (F3-09)', () => {
     });
   });
 
+  it('cambiar de ejercicio rápido: la respuesta vieja no pisa a la nueva', async () => {
+    // El caso real que la guarda de cancelación evita: se elige otro ejercicio
+    // mientras la request anterior sigue en vuelo y vuelve *después*.
+    let resolverPrimera: ((v: unknown) => void) | undefined;
+    progressMock.mockImplementationOnce(
+      () =>
+        new Promise((res) => {
+          resolverPrimera = res;
+        }),
+    );
+    progressMock.mockResolvedValueOnce({
+      progress: progress({ exerciseId: 'x2', exerciseName: 'Peso muerto', currentRm: 200, best: 200 }),
+    });
+
+    render(<MemberProgress memberId="m1" />);
+    await waitFor(() => {
+      expect(progressMock).toHaveBeenCalledWith('m1', 'x1');
+    });
+
+    fireEvent.change(await screen.findByLabelText('Ejercicio'), { target: { value: 'x2' } });
+    await waitFor(() => {
+      expect((screen.getByText(/Vigente:/)).textContent).toContain('200 kg');
+    });
+
+    // Recién ahora contesta la primera. Si no estuviera cancelada, volvería
+    // a pintar Sentadilla encima del ejercicio que el admin está mirando.
+    resolverPrimera?.({ progress: progress() });
+    await waitFor(() => {
+      expect((screen.getByText(/Vigente:/)).textContent).toContain('200 kg');
+    });
+    // El gráfico nombra el ejercicio que está mostrando: sigue siendo el nuevo.
+    // ("Sentadilla" a secas no sirve de aserción: vive en el `<option>`.)
+    expect(screen.getByRole('img', { name: /Evolución de Peso muerto/ })).toBeTruthy();
+    expect(screen.queryByRole('img', { name: /Evolución de Sentadilla/ })).toBeNull();
+  });
+
   it('sin cargas explica qué falta, sin selector vacío', async () => {
     exercisesMock.mockResolvedValue({ items: [] });
     render(<MemberProgress memberId="m1" />);

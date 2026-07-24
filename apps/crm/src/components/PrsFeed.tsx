@@ -24,15 +24,21 @@ export function PrsFeed({ limit = 10 }: { limit?: number }) {
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
+    const run = { cancelled: false }; // propiedad mutable: StrictMode monta dos veces
     void (async () => {
       setError(null);
       try {
         const { items: prs } = await api.stats.prsFeed(limit);
+        if (run.cancelled) return;
         setItems(prs);
       } catch (err) {
+        if (run.cancelled) return;
         setError(errorMessage(err));
       }
     })();
+    return () => {
+      run.cancelled = true;
+    };
   }, [limit]);
 
   if (error) return <ErrorBanner>{error}</ErrorBanner>;

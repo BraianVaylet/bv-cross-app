@@ -8,23 +8,28 @@
 
 `main` llega hasta **F3-08**: entró con el PR consolidado **#43** (F3-05 + F3-07 + F3-08).
 
-**Hay 4 PRs abiertos + 1 que hay que mergear PRIMERO.**
+**Hay 5 PRs abiertos. Uno va primero; el resto, en cualquier orden.**
 
-| PR | Qué trae | Sale de |
-|---|---|---|
-| **#48** | react-router 6→7 (3 advisories nuevos) — **mergear primero** | `main` |
-| **#44** | F3-06, sección Clases (grilla + calendario) | `main` |
-| **#45** | F3-11, configuración de la org + roles de admin en la API | `main` |
-| **#46** | F3-09, evolución de atletas: módulo `stats`, `SimpleChart`, feed de PRs | `main` |
-| **#47** | F3-10, dashboard del CRM + `loadgen` | `feat/f3-09-progress` |
+| Orden | PR | Qué trae | Sale de |
+|---|---|---|---|
+| 1º | **#48** | react-router 6→7 (3 advisories nuevos) — **el único con CI verde** | `main` |
+| — | **#44** | F3-06, sección Clases (grilla + calendario) | `main` |
+| — | **#45** | F3-11, configuración de la org + roles de admin en la API | `main` |
+| — | **#46** | F3-09, evolución de atletas: módulo `stats`, `SimpleChart`, feed de PRs | `main` |
+| — | **#49** | F5-06, job semanal de auditoría de dependencias | `main` |
+| último | **#47** | F3-10, dashboard del CRM + `loadgen` | `feat/f3-09-progress` |
 
 > **Por qué #48 va primero.** El 24/07 se publicaron tres advisories de
 > `react-router` 6.30.4 (GHSA-337j-9hxr-rhxg, GHSA-wrjc-x8rr-h8h6,
 > GHSA-jjmj-jmhj-qwj2). `osv-scanner` corta con cualquier vulnerabilidad
-> conocida sin umbral de severidad, así que **los tres PRs quedaron en rojo por
-> una dependencia, no por su código**. CI corre `on: pull_request`, o sea sobre
-> el merge de la rama contra `main`: apenas #48 entre, un re-run deja verdes a
-> los otros sin tocarles una línea.
+> conocida sin umbral de severidad, así que **los otros cuatro PRs quedaron en
+> rojo por una dependencia, no por su código** — en todos, `osv-scanner` es el
+> único paso que falla. CI corre `on: pull_request`, o sea sobre el merge de la
+> rama contra `main`: apenas #48 entre, un re-run deja verdes a los demás sin
+> tocarles una línea. #48 con CI verde es la prueba de que el fix alcanza.
+>
+> **#49 existe para que esto no vuelva a pasar así**: pregunta los lunes y deja
+> una issue, en vez de que nos enteremos porque se pone todo rojo de golpe.
 
 > #47 sale de la rama de #46 porque extiende el módulo `stats` que #46 crea.
 > GitHub le va a reapuntar la base a `main` solo cuando #46 se mergee.
@@ -32,7 +37,7 @@
 > conflicto de una o dos líneas a partir del segundo. Se resuelve dejando el
 > estado real.
 
-Con todo adentro `main` queda en **F3 11/12 · F4 6/8** — solo falta F3-12 (deploy, bloqueado por F1-12).
+Con todo adentro `main` queda en **F3 11/12 · F4 6/8 · F5 1/7** — de F3 solo falta F3-12 (deploy, bloqueado por F1-12).
 
 ### Por qué se consolida en vez de encadenar
 

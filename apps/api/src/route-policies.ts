@@ -210,4 +210,19 @@ export const ROUTE_POLICIES: RoutePolicy[] = [
   { method: 'POST', path: '/api/v1/bookings/:id/cancel', access: 'member', resource: 'booking' },
   { method: 'GET', path: '/api/v1/me/bookings', access: 'member' },
   { method: 'GET', path: '/api/v1/me/credits', access: 'member' },
+
+  // stats — datos de los clientes del gimnasio: admin-only (F3-09).
+  {
+    method: 'GET',
+    path: '/api/v1/stats/members/:id/progress',
+    access: 'admin',
+    resource: 'membership',
+  },
+  {
+    method: 'GET',
+    path: '/api/v1/stats/members/:id/exercises',
+    access: 'admin',
+    resource: 'membership',
+  },
+  { method: 'GET', path: '/api/v1/stats/prs-feed', access: 'admin' },
 ];

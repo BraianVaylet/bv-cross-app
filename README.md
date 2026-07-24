@@ -45,7 +45,7 @@ Leé los documentos en este orden si sos nuevo en el proyecto:
 
 ## Estado del proyecto
 
-- **Fase actual**: F3 — CRM. F0 5/6 · F1 11/12 · F2 7/8 · F3 7/12 · F4 6/8 (ver [PLAN.md](PLAN.md)).
+- **Fase actual**: F3 — CRM. F0 5/6 · F1 11/12 · F2 7/8 · F3 8/12 · F4 6/8 (ver [PLAN.md](PLAN.md)).
 - La **API** está completa hasta reservas: auth, multi-tenancy, organizaciones, clientes, ejercicios, registros de carga, agenda, packs, asignaciones y el booking-service transaccional con sus endpoints. El **FE de cargas** (`apps/cross`) está migrado y **BV Agenda** (`apps/schedule`) ya reserva contra la API real.
 - Lo que falta para el go-live de F2 es **infraestructura**: crear Atlas + Railway (F1-12) desbloquea los deploys.
 - Qué hay en `main`, qué está en PRs y las trampas conocidas: [bitácora](docs/09-bitacora.md).

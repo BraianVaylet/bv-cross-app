@@ -2,6 +2,8 @@ import { ObjectId } from 'mongodb';
 import {
   bookings,
   classSessions,
+  exercises,
+  rmEntries,
   classTemplates,
   memberships,
   organizations,
@@ -9,7 +11,7 @@ import {
   packs,
   users,
 } from './db/collections.js';
-import type { ClassTemplateDoc, PackDoc } from './db/types.js';
+import type { ClassTemplateDoc, ExerciseDoc, PackDoc, RmEntryDoc } from './db/types.js';
 import { hashPassword } from './lib/crypto.js';
 import { logger } from './lib/logger.js';
 import { book } from './modules/bookings/booking-service.js';
@@ -45,7 +47,34 @@ export interface SeedSummary {
   packs: number;
   assignments: number;
   bookings: number;
+  exercises: number;
+  entries: number;
 }
+
+/**
+ * Catálogo de ejercicios del box demo (F2-01) y las series de carga que
+ * alimentan el progreso y el feed de PRs (F3-09). Los valores no son random:
+ * cada serie tiene récords y mesetas para que el gráfico muestre algo real.
+ */
+const DEMO_EXERCISES: Array<{ name: string; discipline: string; type: 'weight' | 'reps' }> = [
+  { name: 'Sentadilla trasera', discipline: 'weightlifting', type: 'weight' },
+  { name: 'Peso muerto', discipline: 'weightlifting', type: 'weight' },
+  { name: 'Press de banca', discipline: 'strength', type: 'weight' },
+  { name: 'Dominadas', discipline: 'gymnastics', type: 'reps' },
+];
+
+/** Series por atleta: [ejercicio, valores mes a mes]. */
+const DEMO_SERIES: Record<string, Array<[string, number[]]>> = {
+  'atleta1@demo.test': [
+    ['Sentadilla trasera', [60, 70, 65, 70, 72.5, 75]], // con meseta y récord final
+    ['Dominadas', [5, 8, 8, 11]],
+  ],
+  'atleta2@demo.test': [
+    ['Sentadilla trasera', [90, 95, 100]],
+    ['Peso muerto', [120, 130, 127.5]], // el vigente NO es el mejor (RN-22)
+  ],
+  'atleta3@demo.test': [['Press de banca', [50, 55, 57.5, 60]]],
+};
 
 /** Catálogo de packs del box demo (F3-02). */
 const DEMO_PACKS: Array<Pick<PackDoc, 'name' | 'classCount' | 'durationDays' | 'price' | 'paymentMethod'>> = [
@@ -82,6 +111,8 @@ export async function runSeed(nodeEnv: string | undefined = process.env.NODE_ENV
     await packs().deleteMany({ orgId: existing._id });
     await packAssignments().deleteMany({ orgId: existing._id });
     await bookings().deleteMany({ orgId: existing._id });
+    await rmEntries().deleteMany({ orgId: existing._id });
+    await exercises().deleteMany({ orgId: existing._id, scope: 'org' });
     await organizations().deleteOne({ _id: existing._id });
   }
   await users().deleteMany({ email: { $in: [...DEMO_EMAILS] } });
@@ -236,6 +267,45 @@ export async function runSeed(nodeEnv: string | undefined = process.env.NODE_ENV
     }),
   );
 
+  // Catálogo de ejercicios + historial de cargas (F2-01/02, F3-09).
+  const exerciseDocs: ExerciseDoc[] = DEMO_EXERCISES.map((e) => ({
+    _id: new ObjectId(),
+    scope: 'org' as const,
+    orgId,
+    ownerUserId: null,
+    name: e.name,
+    discipline: e.discipline,
+    type: e.type,
+    createdAt: now,
+    updatedAt: now,
+  }));
+  await exercises().insertMany(exerciseDocs);
+  const exerciseByName = new Map(exerciseDocs.map((e) => [e.name, e]));
+
+  // Una carga por mes hacia atrás: el gráfico necesita fechas separadas.
+  const entryDocs: RmEntryDoc[] = [];
+  for (const [email, series] of Object.entries(DEMO_SERIES)) {
+    const userId = byEmail.get(email);
+    if (!userId) throw new Error(`seed: falta el usuario ${email}`);
+    for (const [exerciseName, valores] of series) {
+      const exercise = exerciseByName.get(exerciseName);
+      if (!exercise) throw new Error(`seed: falta el ejercicio ${exerciseName}`);
+      valores.forEach((valor, i) => {
+        const fecha = new Date(now.getTime() - (valores.length - 1 - i) * 30 * day);
+        entryDocs.push({
+          _id: new ObjectId(),
+          exerciseId: exercise._id,
+          userId,
+          orgId, // catálogo ⇒ la entry lleva org (RN-21) y el CRM la ve
+          ...(exercise.type === 'weight' ? { kg: valor } : { reps: valor }),
+          date: fecha.toISOString().slice(0, 10),
+          createdAt: fecha,
+        });
+      });
+    }
+  }
+  await rmEntries().insertMany(entryDocs);
+
   // Reservas reales sobre las 3 próximas clases (F4-01): pasan por el
   // booking-service, no por un insert directo — el seed nunca inventa un
   // estado que la API no podría producir. Deja a atleta3 con el pack agotado
@@ -269,6 +339,8 @@ export async function runSeed(nodeEnv: string | undefined = process.env.NODE_ENV
     packs: DEMO_PACKS.length,
     assignments: assignmentPlan.length,
     bookings: bookingCount,
+    exercises: exerciseDocs.length,
+    entries: entryDocs.length,
   };
   logger.info({ ...summary, slug: DEMO_ORG_SLUG }, 'seed done');
   return summary;

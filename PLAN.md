@@ -71,7 +71,7 @@
 - [x] **F3-08** 🟢 Sonnet — Sección Ejercicios: CRUD de catálogo + carga rápida del set básico
 - [ ] **F3-09** 🟡 Opus — Evolución de atletas: gráfico de progreso (`SimpleChart`) + feed de PRs (definición de PR)
 - [ ] **F3-10** 🟡 Opus — Módulo `stats` + Dashboard (números verificados a mano, presupuesto p95 con `loadgen`)
-- [ ] **F3-11** 🟢 Sonnet — Configuración de la org: settings, joinCode, gestión de admins (+ extensión de roles en API)
+- [x] **F3-11** 🟢 Sonnet — Configuración de la org: settings, joinCode, gestión de admins (+ extensión de roles en API)
 - [ ] **F3-12** 🟢 Sonnet — Deploy del CRM (onboarding real cronometrado < 10 min)
 
 ## F4 — bv-cross-schedule: reservas · [specs](docs/tasks/F4.md)

@@ -8,6 +8,7 @@ import { requireAuth } from '../../middleware/auth.js';
 import { requireRole } from '../../middleware/roles.js';
 import { tenantGuard } from '../../middleware/tenant.js';
 import {
+  dashboard,
   memberExercisesWithData,
   memberProgress,
   prsFeed,
@@ -41,6 +42,11 @@ export function statsRoutes(config: Config) {
   router.get('/members/:id/exercises', async (c) => {
     const userId = await resolveMemberUser(c.get('org'), parseId(c.req.param('id')));
     return c.json({ items: await memberExercisesWithData(c.get('org'), userId) });
+  });
+
+  /** Todo lo que se mira al abrir el día, en una sola llamada (F3-10). */
+  router.get('/dashboard', async (c) => {
+    return c.json({ dashboard: await dashboard(c.get('org')) });
   });
 
   router.get('/prs-feed', async (c) => {

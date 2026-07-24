@@ -36,6 +36,7 @@ const DEMO_EMAILS = [
   'atleta3@demo.test',
   'atleta4@demo.test',
   'atleta5@demo.test',
+  'atleta6@demo.test',
 ] as const;
 
 export interface SeedSummary {
@@ -118,6 +119,7 @@ export async function runSeed(nodeEnv: string | undefined = process.env.NODE_ENV
   await users().deleteMany({ email: { $in: [...DEMO_EMAILS] } });
 
   const now = new Date();
+  const day = 86_400_000;
   const passwordHash = await hashPassword(DEMO_PASSWORD); // uno solo: mismo password universal
 
   const orgId = new ObjectId();
@@ -134,13 +136,24 @@ export async function runSeed(nodeEnv: string | undefined = process.env.NODE_ENV
   });
 
   // atleta5 NO se registra: queda como pre-carga 'invited' del CRM.
-  const registered: { email: (typeof DEMO_EMAILS)[number]; name: string; role: 'owner' | 'admin' | 'athlete' }[] = [
-    { email: 'owner@demo.test', name: 'Olivia Dueña', role: 'owner' },
-    { email: 'admin@demo.test', name: 'Andrés Coach', role: 'admin' },
-    { email: 'atleta1@demo.test', name: 'Ana Fuerte', role: 'athlete' },
-    { email: 'atleta2@demo.test', name: 'Bruno Rápido', role: 'athlete' },
-    { email: 'atleta3@demo.test', name: 'Carla Constante', role: 'athlete' },
-    { email: 'atleta4@demo.test', name: 'Diego Nuevo', role: 'athlete' },
+  //
+  // `joinedAt` está escalonado a propósito (F3-10): un gimnasio donde todos se
+  // anotaron hoy no deja ver el dashboard. Diego entró hace poco (alta del mes)
+  // y Elena hace meses y dejó de venir — es el caso que el CRM tiene que poner
+  // adelante para que el dueño levante el teléfono.
+  const registered: {
+    email: (typeof DEMO_EMAILS)[number];
+    name: string;
+    role: 'owner' | 'admin' | 'athlete';
+    joinedDaysAgo: number;
+  }[] = [
+    { email: 'owner@demo.test', name: 'Olivia Dueña', role: 'owner', joinedDaysAgo: 120 },
+    { email: 'admin@demo.test', name: 'Andrés Coach', role: 'admin', joinedDaysAgo: 120 },
+    { email: 'atleta1@demo.test', name: 'Ana Fuerte', role: 'athlete', joinedDaysAgo: 95 },
+    { email: 'atleta2@demo.test', name: 'Bruno Rápido', role: 'athlete', joinedDaysAgo: 60 },
+    { email: 'atleta3@demo.test', name: 'Carla Constante', role: 'athlete', joinedDaysAgo: 30 },
+    { email: 'atleta4@demo.test', name: 'Diego Nuevo', role: 'athlete', joinedDaysAgo: 5 },
+    { email: 'atleta6@demo.test', name: 'Elena Ausente', role: 'athlete', joinedDaysAgo: 70 },
   ];
 
   await users().insertMany(
@@ -170,8 +183,8 @@ export async function runSeed(nodeEnv: string | undefined = process.env.NODE_ENV
         role: u.role,
         status: 'active' as const,
         profile: { displayName: u.name.split(' ')[0] },
-        joinedAt: now,
-        createdAt: now,
+        joinedAt: new Date(now.getTime() - u.joinedDaysAgo * day),
+        createdAt: new Date(now.getTime() - u.joinedDaysAgo * day),
         updatedAt: now,
       };
     }),
@@ -233,7 +246,6 @@ export async function runSeed(nodeEnv: string | undefined = process.env.NODE_ENV
     currency: pack8.currency,
     paymentMethod: pack8.paymentMethod,
   };
-  const day = 86_400_000;
   const assignmentPlan: Array<{
     email: string;
     classesUsed: number;
@@ -242,7 +254,8 @@ export async function runSeed(nodeEnv: string | undefined = process.env.NODE_ENV
     status: 'active' | 'expired';
   }> = [
     { email: 'atleta1@demo.test', classesUsed: 0, startsAt: now, expiresAt: new Date(now.getTime() + 30 * day), status: 'active' },
-    { email: 'atleta2@demo.test', classesUsed: 4, startsAt: new Date(now.getTime() - 15 * day), expiresAt: new Date(now.getTime() + 15 * day), status: 'active' },
+    // Vence en 5 días con clases sin usar: la alerta de renovación del dashboard.
+    { email: 'atleta2@demo.test', classesUsed: 4, startsAt: new Date(now.getTime() - 25 * day), expiresAt: new Date(now.getTime() + 5 * day), status: 'active' },
     { email: 'atleta3@demo.test', classesUsed: 6, startsAt: new Date(now.getTime() - 27 * day), expiresAt: new Date(now.getTime() + 3 * day), status: 'active' },
     { email: 'atleta4@demo.test', classesUsed: 8, startsAt: new Date(now.getTime() - 40 * day), expiresAt: new Date(now.getTime() - 10 * day), status: 'expired' },
   ];

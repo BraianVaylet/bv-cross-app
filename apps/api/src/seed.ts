@@ -2,6 +2,8 @@ import { ObjectId } from 'mongodb';
 import {
   bookings,
   classSessions,
+  exercises,
+  rmEntries,
   classTemplates,
   memberships,
   organizations,
@@ -9,7 +11,7 @@ import {
   packs,
   users,
 } from './db/collections.js';
-import type { ClassTemplateDoc, PackDoc } from './db/types.js';
+import type { ClassTemplateDoc, ExerciseDoc, PackDoc, RmEntryDoc } from './db/types.js';
 import { hashPassword } from './lib/crypto.js';
 import { logger } from './lib/logger.js';
 import { book } from './modules/bookings/booking-service.js';
@@ -34,6 +36,7 @@ const DEMO_EMAILS = [
   'atleta3@demo.test',
   'atleta4@demo.test',
   'atleta5@demo.test',
+  'atleta6@demo.test',
 ] as const;
 
 export interface SeedSummary {
@@ -45,7 +48,34 @@ export interface SeedSummary {
   packs: number;
   assignments: number;
   bookings: number;
+  exercises: number;
+  entries: number;
 }
+
+/**
+ * Catálogo de ejercicios del box demo (F2-01) y las series de carga que
+ * alimentan el progreso y el feed de PRs (F3-09). Los valores no son random:
+ * cada serie tiene récords y mesetas para que el gráfico muestre algo real.
+ */
+const DEMO_EXERCISES: Array<{ name: string; discipline: string; type: 'weight' | 'reps' }> = [
+  { name: 'Sentadilla trasera', discipline: 'weightlifting', type: 'weight' },
+  { name: 'Peso muerto', discipline: 'weightlifting', type: 'weight' },
+  { name: 'Press de banca', discipline: 'strength', type: 'weight' },
+  { name: 'Dominadas', discipline: 'gymnastics', type: 'reps' },
+];
+
+/** Series por atleta: [ejercicio, valores mes a mes]. */
+const DEMO_SERIES: Record<string, Array<[string, number[]]>> = {
+  'atleta1@demo.test': [
+    ['Sentadilla trasera', [60, 70, 65, 70, 72.5, 75]], // con meseta y récord final
+    ['Dominadas', [5, 8, 8, 11]],
+  ],
+  'atleta2@demo.test': [
+    ['Sentadilla trasera', [90, 95, 100]],
+    ['Peso muerto', [120, 130, 127.5]], // el vigente NO es el mejor (RN-22)
+  ],
+  'atleta3@demo.test': [['Press de banca', [50, 55, 57.5, 60]]],
+};
 
 /** Catálogo de packs del box demo (F3-02). */
 const DEMO_PACKS: Array<Pick<PackDoc, 'name' | 'classCount' | 'durationDays' | 'price' | 'paymentMethod'>> = [
@@ -82,11 +112,14 @@ export async function runSeed(nodeEnv: string | undefined = process.env.NODE_ENV
     await packs().deleteMany({ orgId: existing._id });
     await packAssignments().deleteMany({ orgId: existing._id });
     await bookings().deleteMany({ orgId: existing._id });
+    await rmEntries().deleteMany({ orgId: existing._id });
+    await exercises().deleteMany({ orgId: existing._id, scope: 'org' });
     await organizations().deleteOne({ _id: existing._id });
   }
   await users().deleteMany({ email: { $in: [...DEMO_EMAILS] } });
 
   const now = new Date();
+  const day = 86_400_000;
   const passwordHash = await hashPassword(DEMO_PASSWORD); // uno solo: mismo password universal
 
   const orgId = new ObjectId();
@@ -103,13 +136,24 @@ export async function runSeed(nodeEnv: string | undefined = process.env.NODE_ENV
   });
 
   // atleta5 NO se registra: queda como pre-carga 'invited' del CRM.
-  const registered: { email: (typeof DEMO_EMAILS)[number]; name: string; role: 'owner' | 'admin' | 'athlete' }[] = [
-    { email: 'owner@demo.test', name: 'Olivia Dueña', role: 'owner' },
-    { email: 'admin@demo.test', name: 'Andrés Coach', role: 'admin' },
-    { email: 'atleta1@demo.test', name: 'Ana Fuerte', role: 'athlete' },
-    { email: 'atleta2@demo.test', name: 'Bruno Rápido', role: 'athlete' },
-    { email: 'atleta3@demo.test', name: 'Carla Constante', role: 'athlete' },
-    { email: 'atleta4@demo.test', name: 'Diego Nuevo', role: 'athlete' },
+  //
+  // `joinedAt` está escalonado a propósito (F3-10): un gimnasio donde todos se
+  // anotaron hoy no deja ver el dashboard. Diego entró hace poco (alta del mes)
+  // y Elena hace meses y dejó de venir — es el caso que el CRM tiene que poner
+  // adelante para que el dueño levante el teléfono.
+  const registered: {
+    email: (typeof DEMO_EMAILS)[number];
+    name: string;
+    role: 'owner' | 'admin' | 'athlete';
+    joinedDaysAgo: number;
+  }[] = [
+    { email: 'owner@demo.test', name: 'Olivia Dueña', role: 'owner', joinedDaysAgo: 120 },
+    { email: 'admin@demo.test', name: 'Andrés Coach', role: 'admin', joinedDaysAgo: 120 },
+    { email: 'atleta1@demo.test', name: 'Ana Fuerte', role: 'athlete', joinedDaysAgo: 95 },
+    { email: 'atleta2@demo.test', name: 'Bruno Rápido', role: 'athlete', joinedDaysAgo: 60 },
+    { email: 'atleta3@demo.test', name: 'Carla Constante', role: 'athlete', joinedDaysAgo: 30 },
+    { email: 'atleta4@demo.test', name: 'Diego Nuevo', role: 'athlete', joinedDaysAgo: 5 },
+    { email: 'atleta6@demo.test', name: 'Elena Ausente', role: 'athlete', joinedDaysAgo: 70 },
   ];
 
   await users().insertMany(
@@ -139,8 +183,8 @@ export async function runSeed(nodeEnv: string | undefined = process.env.NODE_ENV
         role: u.role,
         status: 'active' as const,
         profile: { displayName: u.name.split(' ')[0] },
-        joinedAt: now,
-        createdAt: now,
+        joinedAt: new Date(now.getTime() - u.joinedDaysAgo * day),
+        createdAt: new Date(now.getTime() - u.joinedDaysAgo * day),
         updatedAt: now,
       };
     }),
@@ -202,7 +246,6 @@ export async function runSeed(nodeEnv: string | undefined = process.env.NODE_ENV
     currency: pack8.currency,
     paymentMethod: pack8.paymentMethod,
   };
-  const day = 86_400_000;
   const assignmentPlan: Array<{
     email: string;
     classesUsed: number;
@@ -211,7 +254,8 @@ export async function runSeed(nodeEnv: string | undefined = process.env.NODE_ENV
     status: 'active' | 'expired';
   }> = [
     { email: 'atleta1@demo.test', classesUsed: 0, startsAt: now, expiresAt: new Date(now.getTime() + 30 * day), status: 'active' },
-    { email: 'atleta2@demo.test', classesUsed: 4, startsAt: new Date(now.getTime() - 15 * day), expiresAt: new Date(now.getTime() + 15 * day), status: 'active' },
+    // Vence en 5 días con clases sin usar: la alerta de renovación del dashboard.
+    { email: 'atleta2@demo.test', classesUsed: 4, startsAt: new Date(now.getTime() - 25 * day), expiresAt: new Date(now.getTime() + 5 * day), status: 'active' },
     { email: 'atleta3@demo.test', classesUsed: 6, startsAt: new Date(now.getTime() - 27 * day), expiresAt: new Date(now.getTime() + 3 * day), status: 'active' },
     { email: 'atleta4@demo.test', classesUsed: 8, startsAt: new Date(now.getTime() - 40 * day), expiresAt: new Date(now.getTime() - 10 * day), status: 'expired' },
   ];
@@ -235,6 +279,45 @@ export async function runSeed(nodeEnv: string | undefined = process.env.NODE_ENV
       };
     }),
   );
+
+  // Catálogo de ejercicios + historial de cargas (F2-01/02, F3-09).
+  const exerciseDocs: ExerciseDoc[] = DEMO_EXERCISES.map((e) => ({
+    _id: new ObjectId(),
+    scope: 'org' as const,
+    orgId,
+    ownerUserId: null,
+    name: e.name,
+    discipline: e.discipline,
+    type: e.type,
+    createdAt: now,
+    updatedAt: now,
+  }));
+  await exercises().insertMany(exerciseDocs);
+  const exerciseByName = new Map(exerciseDocs.map((e) => [e.name, e]));
+
+  // Una carga por mes hacia atrás: el gráfico necesita fechas separadas.
+  const entryDocs: RmEntryDoc[] = [];
+  for (const [email, series] of Object.entries(DEMO_SERIES)) {
+    const userId = byEmail.get(email);
+    if (!userId) throw new Error(`seed: falta el usuario ${email}`);
+    for (const [exerciseName, valores] of series) {
+      const exercise = exerciseByName.get(exerciseName);
+      if (!exercise) throw new Error(`seed: falta el ejercicio ${exerciseName}`);
+      valores.forEach((valor, i) => {
+        const fecha = new Date(now.getTime() - (valores.length - 1 - i) * 30 * day);
+        entryDocs.push({
+          _id: new ObjectId(),
+          exerciseId: exercise._id,
+          userId,
+          orgId, // catálogo ⇒ la entry lleva org (RN-21) y el CRM la ve
+          ...(exercise.type === 'weight' ? { kg: valor } : { reps: valor }),
+          date: fecha.toISOString().slice(0, 10),
+          createdAt: fecha,
+        });
+      });
+    }
+  }
+  await rmEntries().insertMany(entryDocs);
 
   // Reservas reales sobre las 3 próximas clases (F4-01): pasan por el
   // booking-service, no por un insert directo — el seed nunca inventa un
@@ -269,6 +352,8 @@ export async function runSeed(nodeEnv: string | undefined = process.env.NODE_ENV
     packs: DEMO_PACKS.length,
     assignments: assignmentPlan.length,
     bookings: bookingCount,
+    exercises: exerciseDocs.length,
+    entries: entryDocs.length,
   };
   logger.info({ ...summary, slug: DEMO_ORG_SLUG }, 'seed done');
   return summary;

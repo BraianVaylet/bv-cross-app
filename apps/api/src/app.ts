@@ -19,6 +19,7 @@ import { membersRoutes } from './modules/members/members.routes.js';
 import { orgsRoutes } from './modules/orgs/orgs.routes.js';
 import { packsRoutes } from './modules/packs/packs.routes.js';
 import { sessionsRoutes, templatesRoutes } from './modules/schedule/schedule.routes.js';
+import { statsRoutes } from './modules/stats/stats.routes.js';
 
 export interface AppVariables {
   requestId: string;
@@ -136,6 +137,7 @@ export function createApp(config: Config, deps: AppDeps = {}) {
   app.route('/api/v1/templates', templatesRoutes(config));
   app.route('/api/v1/sessions', sessionsRoutes(config));
   app.route('/api/v1/bookings', bookingsRoutes(config));
+  app.route('/api/v1/stats', statsRoutes(config));
 
   app.all('/api/*', (c) => c.json(errorBody('NOT_FOUND', 'Ruta inexistente.'), 404));
 

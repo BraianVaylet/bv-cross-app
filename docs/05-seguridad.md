@@ -58,7 +58,17 @@ Requisito explícito del producto: no usar paquetes comprometidos y poder valida
 ```
 - `pnpm audit`: advisories de npm. `osv-scanner` (Google, binario en CI): base OSV más amplia, cubre más ecosistemas.
 - **CI falla** si hay vulnerabilidad `high`+ en deps de producción. Excepciones: solo con anotación en el PR (`# audit-exception: CVE-XXXX razón + fecha de revisión`).
-- Job semanal programado (GitHub Actions `schedule`) que corre `audit:deps` sobre `main` y abre issue si falla — detecta CVEs nuevos sin esperar un PR.
+- **Dónde se declaran las excepciones**, y por qué en dos lados: `auditConfig.ignoreGhsas` en `pnpm-workspace.yaml` (para `pnpm audit`) **y** `osv-scanner.toml` (para el otro escáner). Las dos listas tienen que decir lo mismo: dos escáneres con criterios distintos sobre el mismo árbol es peor que uno solo, porque el que sobra se empieza a ignorar. Cada entrada lleva razón y fecha de revisión; `osv-scanner.toml` además tiene `ignoreUntil`, así que la excepción **vuelve a fallar sola** cuando se vence.
+- Excepciones vigentes:
+
+| Advisory | Por qué se ignora | Se revisa |
+|---|---|---|
+| [GHSA-qwww-vcr4-c8h2](https://github.com/advisories/GHSA-qwww-vcr4-c8h2) (high) | Bypass de CSRF **en modo RSC** de `react-router` 7.x. Las tres apps son SPAs de Vite con `BrowserRouter`: sin React Server Components ni server actions, la ruta vulnerable no existe. El parche está en react-router 8.3.0, que exige **React 19** (`useOptimistic`) y las apps están en 18.3.1 — subir el router arrastra la migración de React en los tres FEs, que es un cambio de otro tamaño y no se hace para apagar un CI rojo | Al migrar a React 19, o el **2026-10-24** |
+- Job semanal programado (GitHub Actions `schedule`) que corre `audit:deps` sobre `main` y abre issue si falla — detecta CVEs nuevos sin esperar un PR. **Implementado en `.github/workflows/audit.yml`** (F5-06), lunes 09:00 UTC + `workflow_dispatch`. Notas de diseño:
+  - **Los dos escáneres corren siempre**, aunque el primero encuentre algo: el reporte existe justo para no tener que ir a buscar la otra mitad al log.
+  - **El job no falla por los hallazgos**; su producto es la issue. Si fallara, el mail de "workflow failed" competiría por la atención con la issue, y GitHub desactiva solo los workflows programados que fallan 60 días seguidos — o sea que fallar es la forma más rápida de quedarse sin auditoría.
+  - **Una sola issue, que se actualiza y se cierra sola.** Se busca listando las abiertas con label `security` y comparando el título **exacto**, sin `--search`: el índice de búsqueda de GitHub tarda en ponerse al día y una issue recién creada puede no aparecer todavía — que es exactamente el caso en el que se duplicaría. Cuando la auditoría vuelve a dar limpio, la issue se cierra: una issue de seguridad que queda abierta después de resuelta entrena a ignorar la etiqueta.
+  - Se usa `gh` (preinstalado en el runner, con el `GITHUB_TOKEN` del job) y no una action de terceros: agregarle una dependencia más a un job de cadena de suministro sería contradictorio.
 
 ## 6. Secretos y configuración
 

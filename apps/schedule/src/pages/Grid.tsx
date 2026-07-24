@@ -56,32 +56,50 @@ export function Grid() {
   const [booking, setBooking] = useState<string | null>(null);
   const [noCredits, setNoCredits] = useState(false);
 
-  const loadWeek = useCallback(async (): Promise<void> => {
-    const from = days[0];
-    const to = days[6];
-    if (!from || !to) return;
-    setLoadError(null);
-    try {
-      const { items } = await api.sessions.list(from, to);
-      setSessions(items);
-    } catch (err) {
-      setSessions(null);
-      setLoadError(errorMessage(err));
-    }
-  }, [days]);
+  // `run` llega solo desde el efecto: al pasar de semana, la respuesta de la
+  // anterior no pisa a la nueva. Los refetch de después de reservar y el botón
+  // de reintento lo llaman sin argumento, así que nunca se cancelan.
+  const loadWeek = useCallback(
+    async (run?: { cancelled: boolean }): Promise<void> => {
+      const from = days[0];
+      const to = days[6];
+      if (!from || !to) return;
+      setLoadError(null);
+      try {
+        const { items } = await api.sessions.list(from, to);
+        if (run?.cancelled) return;
+        setSessions(items);
+      } catch (err) {
+        if (run?.cancelled) return;
+        setSessions(null);
+        setLoadError(errorMessage(err));
+      }
+    },
+    [days],
+  );
 
   useEffect(() => {
-    void loadWeek();
+    const run = { cancelled: false }; // propiedad mutable: StrictMode monta dos veces
+    void loadWeek(run);
+    return () => {
+      run.cancelled = true;
+    };
   }, [loadWeek]);
 
   useEffect(() => {
+    const run = { cancelled: false };
     void (async () => {
       try {
-        setCredits(await api.me.credits());
+        const mine = await api.me.credits();
+        if (run.cancelled) return;
+        setCredits(mine);
       } catch {
         // El saldo es contexto, no bloquea la grilla: si falla, no se muestra.
       }
     })();
+    return () => {
+      run.cancelled = true;
+    };
   }, []);
 
   const byDay = useMemo(
@@ -161,7 +179,7 @@ export function Grid() {
           expiresAt={credits.nextExpiration}
           timeZone={timeZone}
           onClick={() => {
-            navigate('/credits');
+            void navigate('/credits');
           }}
         />
       )}
@@ -279,7 +297,7 @@ export function Grid() {
             full
             onClick={() => {
               setNoCredits(false);
-              navigate('/credits');
+              void navigate('/credits');
             }}
           >
             Ver mi saldo

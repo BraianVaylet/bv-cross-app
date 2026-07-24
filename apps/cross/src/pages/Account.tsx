@@ -67,7 +67,7 @@ export function Account() {
 
   const onLogout = async () => {
     await logout();
-    navigate('/login', { replace: true });
+    void navigate('/login', { replace: true });
   };
 
   return (

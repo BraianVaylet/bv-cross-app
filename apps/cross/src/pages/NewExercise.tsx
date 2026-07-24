@@ -46,7 +46,7 @@ export function NewExercise() {
       if (built && 'payload' in built) {
         await api.entries.create({ exerciseId: exercise.id, ...built.payload });
       }
-      navigate(`/exercises/${exercise.id}`, { replace: true });
+      void navigate(`/exercises/${exercise.id}`, { replace: true });
     } catch (err) {
       const fields = fieldErrors(err);
       setErrors(fields);

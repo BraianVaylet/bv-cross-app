@@ -17,9 +17,9 @@
 | F0 | Fundaciones (monorepo + estándares) | 6 | [docs/tasks/F0.md](docs/tasks/F0.md) | 🔨 5/6 (F0-06 espera decisión de dominio — humano) |
 | F1 | API core: auth + organizaciones | 12 | [docs/tasks/F1.md](docs/tasks/F1.md) | 🔨 11/12 |
 | F2 | Migración de bv-cross (cargas) | 8 | [docs/tasks/F2.md](docs/tasks/F2.md) | 🔨 7/8 |
-| F3 | CRM: gestión del gimnasio | 12 | [docs/tasks/F3.md](docs/tasks/F3.md) | 🔨 7/12 |
+| F3 | CRM: gestión del gimnasio | 12 | [docs/tasks/F3.md](docs/tasks/F3.md) | 🔨 11/12 |
 | F4 | bv-cross-schedule: reservas | 8 | [docs/tasks/F4.md](docs/tasks/F4.md) | 🔨 6/8 |
-| F5 | Estadísticas + hardening | 7 | [docs/tasks/F5.md](docs/tasks/F5.md) | — |
+| F5 | Estadísticas + hardening | 7 | [docs/tasks/F5.md](docs/tasks/F5.md) | 🔨 1/7 |
 | F6 | Go-live | 5 | [docs/tasks/F6.md](docs/tasks/F6.md) | — |
 
 ---
@@ -66,12 +66,12 @@
 - [x] **F3-03** ⛔ 🔴 Fable — Módulo `assignments`: snapshot inmutable, vencimiento en tz org, pago manual
 - [x] **F3-04** ⛔ 🟡 Opus — CRM scaffolding + `AppShell` responsive + onboarding wizard (F1 del Funcional)
 - [x] **F3-05** 🟡 Opus — Sección Clientes: `DataTable`, ficha, asignar pack, invitación por WhatsApp
-- [ ] **F3-06** 🟡 Opus — Sección Clases: grilla de templates (duplicar día) + calendario de sesiones + anotados
+- [x] **F3-06** 🟡 Opus — Sección Clases: grilla de templates (duplicar día) + calendario de sesiones + anotados
 - [x] **F3-07** 🟢 Sonnet — Sección Packs: matriz RN-14 comunicada en la UI + historial de precios
 - [x] **F3-08** 🟢 Sonnet — Sección Ejercicios: CRUD de catálogo + carga rápida del set básico
-- [ ] **F3-09** 🟡 Opus — Evolución de atletas: gráfico de progreso (`SimpleChart`) + feed de PRs (definición de PR)
-- [ ] **F3-10** 🟡 Opus — Módulo `stats` + Dashboard (números verificados a mano, presupuesto p95 con `loadgen`)
-- [ ] **F3-11** 🟢 Sonnet — Configuración de la org: settings, joinCode, gestión de admins (+ extensión de roles en API)
+- [x] **F3-09** 🟡 Opus — Evolución de atletas: gráfico de progreso (`SimpleChart`) + feed de PRs (definición de PR)
+- [x] **F3-10** 🟡 Opus — Módulo `stats` + Dashboard (números verificados a mano, presupuesto p95 con `loadgen`)
+- [x] **F3-11** 🟢 Sonnet — Configuración de la org: settings, joinCode, gestión de admins (+ extensión de roles en API)
 - [ ] **F3-12** 🟢 Sonnet — Deploy del CRM (onboarding real cronometrado < 10 min)
 
 ## F4 — bv-cross-schedule: reservas · [specs](docs/tasks/F4.md)
@@ -92,7 +92,7 @@
 - [ ] **F5-03** 🟢 Sonnet — Sentry (API + 3 FEs) + redacción de logs verificada por test
 - [ ] **F5-04** 🔴 Fable — Auditoría de seguridad pre-lanzamiento (procedimiento adversarial + informe con hallazgos)
 - [ ] **F5-05** 🟡 Opus — Performance pass: 5 presupuestos medidos antes/después (bundles, Lighthouse, k6, explain)
-- [ ] **F5-06** 🟢 Haiku — Job semanal de auditoría de dependencias (issue automática sin duplicar)
+- [x] **F5-06** 🟢 Haiku — Job semanal de auditoría de dependencias (issue automática sin duplicar)
 - [ ] **F5-07** 🟡 Sonnet — Backup nocturno cifrado a R2 + ensayo de restore cronometrado (RTO < 1 h)
 
 ## F6 — Go-live · [specs](docs/tasks/F6.md)

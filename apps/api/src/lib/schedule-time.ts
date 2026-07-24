@@ -77,6 +77,49 @@ export function weekdayInTz(ymd: string, timeZone: string): number {
   return new TZDate(year, month - 1, day, 12, 0, 0, timeZone).getDay();
 }
 
+/**
+ * Semana en curso, lunes a domingo, evaluada en la tz de la org (F3-10).
+ *
+ * Lunes y no domingo porque es la semana del gimnasio: la grilla arranca el
+ * lunes (RN-05) y el dueño compara "esta semana" contra esa misma ventana.
+ */
+export function weekRangeInTz(timeZone: string, now: Date = new Date()): { from: string; to: string } {
+  const hoy = todayInTz(timeZone, now);
+  const dow = weekdayInTz(hoy, timeZone); // 0=domingo
+  const from = addDaysYmd(hoy, -((dow + 6) % 7)); // domingo retrocede 6, lunes 0
+  return { from, to: addDaysYmd(from, 6) };
+}
+
+/** Mes calendario en curso en la tz de la org (F3-10). */
+export function monthRangeInTz(timeZone: string, now: Date = new Date()): { from: string; to: string } {
+  const hoy = todayInTz(timeZone, now);
+  const from = `${hoy.slice(0, 7)}-01`;
+  const { year, month } = parseYmd(from);
+  // Día 0 del mes siguiente = último del actual, sin tabla de días por mes.
+  const ultimo = new Date(Date.UTC(year, month, 0));
+  return { from, to: ultimo.toISOString().slice(0, 10) };
+}
+
+/**
+ * Instantes UTC que abarcan [from, to] completo en la tz de la org.
+ * `to` es inclusivo: cubre hasta el último milisegundo de ese día local.
+ */
+export function utcBounds(
+  from: string,
+  to: string,
+  timeZone: string,
+): { start: Date; end: Date } {
+  return { start: localToUtc(from, '00:00', timeZone), end: endOfDayInTz(to, timeZone) };
+}
+
+/** Días de calendario entre dos fechas YYYY-MM-DD (`to - from`). */
+export function daysBetweenYmd(from: string, to: string): number {
+  const a = parseYmd(from);
+  const b = parseYmd(to);
+  const ms = Date.UTC(b.year, b.month - 1, b.day) - Date.UTC(a.year, a.month - 1, a.day);
+  return Math.round(ms / 86_400_000);
+}
+
 /** Todas las fechas de calendario en [from, to] (inclusive). */
 export function datesBetween(from: string, to: string): string[] {
   const out: string[] = [];

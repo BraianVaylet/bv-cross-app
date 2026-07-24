@@ -54,15 +54,21 @@ export function MyBookings() {
   /** El mismo flujo de cancelar, pero volviendo a la grilla para elegir otra. */
   const [reschedule, setReschedule] = useState(false);
 
+  // `run` llega solo desde el efecto: al cambiar de tab hay que descartar la
+  // carga anterior o el resultado viejo pisa al nuevo (el historial tarda más
+  // que las próximas). El refetch de después de cancelar y el botón de
+  // reintento lo llaman sin argumento, así que nunca se cancelan.
   const load = useCallback(
-    async (target: Scope): Promise<void> => {
+    async (target: Scope, run?: { cancelled: boolean }): Promise<void> => {
       setLoadError(null);
       setItems(null);
       try {
         const page = await api.me.bookings({ scope: target, limit: 20 });
+        if (run?.cancelled) return;
         setItems(page.items);
         setCursor(page.nextCursor);
       } catch (err) {
+        if (run?.cancelled) return;
         setLoadError(errorMessage(err));
       }
     },
@@ -70,17 +76,27 @@ export function MyBookings() {
   );
 
   useEffect(() => {
-    void load(scope);
+    const run = { cancelled: false }; // propiedad mutable: StrictMode monta dos veces
+    void load(scope, run);
+    return () => {
+      run.cancelled = true;
+    };
   }, [load, scope]);
 
   useEffect(() => {
+    const run = { cancelled: false };
     void (async () => {
       try {
-        setCredits(await api.me.credits());
+        const mine = await api.me.credits();
+        if (run.cancelled) return;
+        setCredits(mine);
       } catch {
         // El saldo solo sirve para advertir sobre packs vencidos: si falla, se omite.
       }
     })();
+    return () => {
+      run.cancelled = true;
+    };
   }, []);
 
   const loadMore = async (): Promise<void> => {
@@ -142,7 +158,7 @@ export function MyBookings() {
   };
 
   const afterCancelNavigate = (booking: BookingWithSessionDto): void => {
-    navigate(`/?day=${ymdInTz(booking.session.startsAt, timeZone)}`);
+    void navigate(`/?day=${ymdInTz(booking.session.startsAt, timeZone)}`);
   };
 
   const renderUpcoming = (booking: BookingWithSessionDto) => {
@@ -252,7 +268,7 @@ export function MyBookings() {
                 action: (
                   <Button
                     onClick={() => {
-                      navigate('/');
+                      void navigate('/');
                     }}
                   >
                     Ver la grilla

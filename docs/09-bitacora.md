@@ -2,21 +2,31 @@
 
 > Registro de **hasta dónde llegó la implementación**, qué decisiones se tomaron sobre la marcha y qué trampas aparecieron. Los docs 00-08 describen el diseño (estable); este describe el avance (cambiante). El estado tarea por tarea vive en [PLAN.md](../PLAN.md).
 >
-> **Última actualización**: 2026-07-22.
+> **Última actualización**: 2026-07-24.
 
 ## 1. Dónde está cada cosa
 
-`main` llega hasta **F3-04**: entró con el PR consolidado **#40** (F4-03..F4-06 + F3-04), que reemplazó a #37-#39.
+`main` llega hasta **F3-08** (PR consolidado #43). Todo lo demás está en **un único PR: #51**, que reemplaza a #44, #45, #46, #47, #48, #49 y #50.
 
-**Queda 1 PR abierto: #43**, con las tres secciones del CRM que siguen — **F3-05** (Clientes), **F3-07** (Packs) y **F3-08** (Ejercicios). Reemplaza a #41 y #42, cerrados sin mergear: su contenido está ahí commit por commit.
+| Reemplaza | Qué trae |
+|---|---|
+| #48 | react-router 6→7 — tres advisories publicados el 24/07 |
+| #44 | F3-06, sección Clases: grilla de horarios + calendario de sesiones |
+| #45 | F3-11, configuración de la org + extensión de roles en la API |
+| #46 | F3-09, evolución de atletas: módulo `stats`, `SimpleChart`, feed de PRs |
+| #47 | F3-10, dashboard del CRM + `loadgen` |
+| #49 | F5-06, job semanal de auditoría de dependencias |
+| #50 | Guarda de cancelación en las cargas por efecto de los tres FEs |
 
-Después de mergearlo, `main` queda en **F3 7/12 · F4 6/8**.
+Con #51 adentro, `main` queda en **F3 11/12 · F4 6/8 · F5 1/7**. Del CRM solo falta **F3-12** (deploy), bloqueado por F1-12.
+
+**Por qué se consolidó otra vez.** Los siete salían de `main` y eran independientes, así que en principio se mergeaban en cualquier orden. Lo que los ató fue el advisory de `react-router`: `osv-scanner` corta con cualquier vulnerabilidad conocida y sin umbral de severidad, así que **todos menos uno quedaron en rojo por una dependencia, no por su código** — en todos, `osv-scanner` era el único paso que fallaba. El fix vivía en el sexto. Eso convertía "en cualquier orden" en "uno primero y después re-correr los otros seis a mano", que es exactamente el costo que la regla de consolidar existe para evitar. Y al juntarlos aparecieron **dos bugs que ninguno podía ver solo**: los `navigate()` del Dashboard sin `void` (el router nuevo estaba en otro PR) y las cinco pantallas nuevas sin guarda de cancelación (el fix estaba en otro PR).
 
 ### Por qué se consolida en vez de encadenar
 
 Una pila larga obliga a mergear en orden exacto, borrar cada rama para que GitHub retargetee la siguiente, y aguantar que un advisory nuevo voltee el CI de todas a la vez. Un PR consolidado se revisa igual por commits (la historia individual queda intacta) y entra de una.
 
-> Pasó cuatro veces: #29 reemplazó a #19-#28, #36 a #30-#35, #40 a #37-#39 y #43 a #41-#42. **Regla: no encadenar más de 2 o 3 PRs.** Si una tarea nueva necesita algo que está en un PR sin mergear, conviene pedir el merge antes de arrancar.
+> Pasó cinco veces: #29 reemplazó a #19-#28, #36 a #30-#35, #40 a #37-#39, #43 a #41-#42 y #51 a #44-#50. **Regla: no encadenar más de 2 o 3 PRs.** Si una tarea nueva necesita algo que está en un PR sin mergear, conviene pedir el merge antes de arrancar.
 
 ## 2. Estado por fase
 
@@ -25,23 +35,34 @@ Una pila larga obliga a mergear en orden exacto, borrar cada rama para que GitHu
 | **F0** Fundaciones | 5/6 | F0-06: comprar dominio (decisión humana; solo bloquea F6) |
 | **F1** API core | 11/12 | F1-12: deploy de la API — **necesita Atlas M0 + Railway creados por un humano** |
 | **F2** Migración bv-cross | 7/8 | F2-07: deploy del FE — depende de F1-12 |
-| **F3** CRM | 7/12 | `apps/crm` con onboarding, Clientes, Packs y Ejercicios operativos. Faltan F3-06, F3-09..F3-12 |
+| **F3** CRM | 11/12 | `apps/crm` completo: onboarding, Clientes, Clases, Packs, Ejercicios, Evolución, Dashboard y Configuración. Falta F3-12 (deploy, bloqueado por F1-12) |
 | **F4** Reservas | 6/8 | **La app del atleta está completa**: reserva, cancela, cambia de horario y ve su saldo. Falta el deploy (F4-07, depende de F1-12) y los E2E (F4-08) |
-| **F5-F6** | — | No arrancadas |
+| **F5** Stats + hardening | 1/7 | F5-06 (auditoría semanal) adentro. Sin bloqueo humano siguen F5-01/02 (stats de clases y de clientes), F5-03 (Sentry) y F5-05 (performance pass) |
+| **F6** Go-live | — | No arrancada |
 
 ### Lo que está implementado y funcionando
 
 **API (`apps/api`)** — auth completa (registro, verificación por email, login, refresh rotativo con detección de reuso, reset, cambio de password), multi-tenancy por `X-Org-Id`, organizaciones con joinCode, members (CRM), exercises (catálogo + personales), entries (RMs), schedule (templates + sesiones), packs, assignments y el `booking-service` transaccional (reservar, cancelar, cancelar la clase entera). Dos jobs en el scheduler: `expire-packs` y `materialize-sessions`.
 
-**CRM (`apps/crm`, "BV CRM")** — shell con sidebar en escritorio y barra inferior en el teléfono (`AppShell`, nuevo en `@bv/ui`), guard de rol (solo owner/admin; el atleta que entra por error ve una explicación, no un 403) y **onboarding del dueño**: crear el gimnasio, una clase y un pack —los dos últimos salteables— y el código de organización al final con el mensaje de invitación listo para copiar. **Clientes** (F3-05) ya opera: lista con `DataTable` (tabla en escritorio, cards abajo de 768px), búsqueda server-side con debounce, filtros por estado, alta manual y ficha con packs, asignación con el pago registrado, anulación con motivo, baja/reactivación e invitación al portapapeles. **Packs** (F3-07) también: catálogo con la matriz RN-14 comunicada en el formulario (con clientes vigentes, los campos que les cambiarían el trato llegan deshabilitados y con la explicación), archivar/restaurar y el tab de archivados como historial de precios (RN-15). **Ejercicios** (F3-08) cierra el catálogo: CRUD con `TYPE_LOCKED` comunicado antes del error, preview de imagen con aviso si la URL está rota, archivar/restaurar y **carga rápida de los 12 básicos** para que un box nuevo no arranque vacío. El resto son placeholders que dicen en qué tarea llegan (F3-06, F3-09..F3-11).
+**CRM (`apps/crm`, "BV CRM")** — **completo salvo el deploy.** Shell con sidebar en escritorio y barra inferior en el teléfono (`AppShell`), guard de rol (el atleta que entra por error ve una explicación, no un 403) y **onboarding del dueño**: crear el gimnasio, una clase y un pack —los dos últimos salteables— y el código de organización al final con el mensaje de invitación listo para copiar. Las secciones:
+
+- **Dashboard** (F3-10) — la home: ingresos y altas del mes, reservas de la semana, y tres listas accionables (clases de hoy con su ocupación, packs que vencen, gente sin actividad hace 14+ días). Una sola llamada trae todo.
+- **Clientes** (F3-05) — `DataTable` (tabla en escritorio, cards abajo de 768px), búsqueda server-side con debounce, filtros por estado, alta manual, ficha con packs, asignación con el pago registrado, anulación con motivo, baja/reactivación e invitación al portapapeles.
+- **Clases** (F3-06) — grilla semanal de horarios con **duplicar día**, propagación RN-05 avisada antes de guardar, y calendario de sesiones con anotados, cupo editable y cancelación con devolución.
+- **Packs** (F3-07) — matriz RN-14 comunicada en el formulario (con clientes vigentes, los campos que les cambiarían el trato llegan deshabilitados y con la explicación), archivar/restaurar y el tab de archivados como historial de precios (RN-15).
+- **Ejercicios** (F3-08) — CRUD con `TYPE_LOCKED` comunicado antes del error, preview de imagen con aviso si la URL está rota, archivar/restaurar y **carga rápida de los 12 básicos** para que un box nuevo no arranque vacío.
+- **Evolución** (F3-09) — tab de progreso en la ficha (gráfico con los récords destacados e historial) y feed de récords del gimnasio.
+- **Configuración** (F3-11) — identidad, políticas, código de acceso regenerable y gestión de administradores; las secciones de owner se ocultan al admin.
+
+El único placeholder que queda es **Estadísticas**, que llega en F5-01.
 
 **FE de agenda (`apps/schedule`, "BV Agenda")** — PWA propia del atleta: shell con bottom-nav de 4 secciones (Grilla, Mis reservas, Saldo, Cuenta), auth y join heredados de `apps/cross`, SSO por cookie compartida verificado a mano. **La grilla reserva de verdad** (F4-04): semana navegable con el horizonte como límite, cards con los 6 estados, saldo en el header y confirmación que dice de qué pack sale el crédito. **Mis reservas** (F4-05) muestra la ventana de cancelación antes del error ("Podés cancelar hasta las 16:00"), avisa si el crédito vuelve a un pack vencido y permite cambiar de horario (cancelar + volver a la grilla en ese día). **Saldo** (F4-06) separa activos e historial, marca cuál se consume primero y cuál todavía no arrancó.
 
 **FE de cargas (`apps/cross`)** — migrado de v1 al monorepo: auth nueva (token en memoria, refresh single-flight), join a organización, Home con catálogo + personales y búsqueda, detalle con la calculadora de cargas de v1, cuenta, PWA con prompt de actualización.
 
-**Suite de aislamiento multi-tenant** — creció de 39 a **196 tests generados** automáticamente. Cada ruta nueva se registra en `route-policies.ts` y la suite cruza esa tabla contra las rutas reales de Hono: **si agregás un endpoint y no lo registrás, el build falla**.
+**Suite de aislamiento multi-tenant** — creció de 39 a **más de 210 tests generados** automáticamente. Cada ruta nueva se registra en `route-policies.ts` y la suite cruza esa tabla contra las rutas reales de Hono: **si agregás un endpoint y no lo registrás, el build falla**.
 
-**Seed de desarrollo** (`pnpm --filter @bv/api db:seed`) — org demo `bahia-cross-demo` con owner, admin, 4 atletas + 1 pre-carga, grilla lun–sáb materializada 14 días, 2 packs, 4 asignaciones en distintos estados y 7 reservas sobre las 3 próximas clases.
+**Seed de desarrollo** (`pnpm --filter @bv/api db:seed`) — org demo `bahia-cross-demo` con owner, admin, 5 atletas + 1 pre-carga, grilla lun–sáb materializada 14 días, 2 packs, 4 asignaciones en distintos estados, 7 reservas y 20 cargas de RM. **El gimnasio tiene historia a propósito** (F3-10): altas escalonadas de 120 a 5 días, un pack venciendo en 5 días con saldo sin usar y una atleta que se anotó hace 70 días y nunca reservó — sin eso el dashboard abre vacío y no se puede ni mirar.
 
 **Migración v1→v2** (`db:migrate-v1`) — dry-run por defecto, `--commit`, `--rollback`. Ver [scripts/README-migrate.md](../apps/api/scripts/README-migrate.md).
 
@@ -69,6 +90,14 @@ Las que no estaban en los docs de diseño y se resolvieron al implementar:
 | Atleta que abre el CRM | Pantalla que lo explica, **no** onboarding | Mandarlo al wizard le crearía un gimnasio sin querer. Solo quien no tiene ninguna membresía cae en el onboarding (F3-04) |
 | `AppShell` y el router | El shell recibe `currentPath` y un `renderLink`; no importa react-router | Queda testeable sin montar rutas y reutilizable por cualquier app admin. El `active` viaja al link para que ponga `aria-current` |
 | Saldo del cliente en la tabla | **No** por fila: se ve al entrar a la ficha | Traer los packs de cada cliente en la lista serían N+1 requests en la pantalla que más se abre. La columna quedó para la última reserva (F4) |
+| `formatInOrgTz` de la spec de F3-06 | **No se creó**: se reusa `timeInTz` de `@bv/ui` | Ya existía compartido desde F4-04, con el test del borde 23:30 AR. Duplicarlo en `apps/crm/src/lib` habría dado dos fuentes para la misma regla |
+| Cambio de rol en `PATCH /members/:id` | El guard de ruta sigue siendo `admin`; el chequeo fino (`org:manage-admins`) vive en el servicio | Un admin tiene que poder editar la ficha; lo único vedado es el rol. Partir la ruta en dos habría duplicado el resto de la lógica |
+| `role: 'owner'` por PATCH | **No existe en el contrato**: el enum solo acepta `admin` y `athlete` | Transferir la titularidad es otra operación (con sus confirmaciones); dejarla entrar por acá sería regalarla de un typo |
+| Costo del dashboard | Seis pipelines con `Promise.all` en caliente, sin colección de snapshots | El disparador para pre-agregar está escrito ([Escalabilidad §2](07-escalabilidad.md)): p95 > 500 ms. Medido con 100 gimnasios sintéticos (977.500 documentos) da **p95 65 ms**, un orden de magnitud abajo. Un snapshot resuelve un problema que todavía no existe y crea uno que sí: quedar desfasado |
+| Escala del presupuesto | Por env (`LOADGEN_ORGS`), no un script aparte | El test de CI y la medición de ×100 son el MISMO test con otros números. Un procedimiento manual documentado aparte no lo vuelve a correr nadie |
+| Definición de PR | Función pura `markPrs` en `modules/stats/pr-rule.ts`, no un pipeline de Mongo | Es la regla que van a reusar las stats de F5: escrita una vez, testeada como función pura y aplicada igual en el progreso y en el feed. `$setWindowFields` calcularía el máximo acumulado, pero igual habría que leer el historial completo del par para saber si la última carga fue récord |
+| Igualar una marca | **No** es PR (comparación estricta) | Si contara, el feed se llenaría de repeticiones y dejaría de significar algo |
+| `SimpleChart` | SVG a mano, sin librería de charts | Son series de 5-50 puntos; 100 kB de dependencia para esto no se paga. Los tres bordes que rompen un gráfico casero (1 punto, valores iguales, lista vacía) están testeados contra NaN en el `d` |
 | `hasEntries` en el `exerciseDto` | Solo en el **listado admin del catálogo**, con un `distinct` por lote | El CRM lo necesita para comunicar TYPE_LOCKED; el atleta no, y así no paga esa query. Un count por ejercicio habría sido N+1 |
 | Carga del set básico | Un duplicado **no aborta el lote**: se cuenta y sigue | El dueño que ya cargó tres a mano no tiene que adivinar cuáles faltan |
 | Matriz RN-14 en la UI | Los campos bloqueados llegan `disabled` **con la explicación arriba** | Descubrir la regla con un 409 después de completar el formulario es la peor forma de enterarse. El servidor la sigue aplicando igual |
@@ -76,6 +105,8 @@ Las que no estaban en los docs de diseño y se resolvieron al implementar:
 | CRM como PWA | **No** | Se usa desde el mostrador o el teléfono del dueño, siempre con conexión. Un service worker en una app que cambia seguido es un problema de despliegue, no una mejora |
 | Password en la migración v1→v2 | No se migra el hash: se crea una **aleatoria** y el dueño usa "olvidé mi contraseña" | Cambia el esquema de identidad (alias → email) |
 | DST con hora local inexistente | Se usa el resultado determinista de la librería (sesión corrida) | Preferible a dejar un hueco silencioso en la grilla |
+| Cancelar las cargas disparadas por efecto | Guarda `run = { cancelled: false }` **inline**, como en `AuthContext`; **no** un hook `useAsyncEffect` | Los `setState` viven adentro de `load`, y `load` lo comparten el efecto y las acciones del usuario (reintento, refetch después de guardar). Un hook genérico no puede meter la guarda ahí adentro: ahorraría 3 líneas de efecto y obligaría igual a tocar cada `load`. A cambio serían 3 archivos nuevos duplicados en `src/lib` — justo la deuda que F6-05 quiere cerrar |
+| Quién recibe la guarda | La toma `load` como parámetro **opcional**: el efecto la pasa, los handlers no | Un `isMounted` por ref no arregla el pisado de datos (es por request, no por montaje). Con el parámetro opcional, los botones de reintento y los refetch post-mutación siguen andando sin tocarlos |
 
 ## 4. Trampas de infraestructura (que van a volver)
 
@@ -84,22 +115,26 @@ Las que no estaban en los docs de diseño y se resolvieron al implementar:
 - **Tailwind v4 no escanea `node_modules`**, y `@bv/ui` entra por ahí (symlink del workspace): las clases que solo viven en los componentes del design system no se generaban en la app que los consume. Se ve como un componente "roto" sin error de build — lo agarró la verificación en el navegador, no un test. Resuelto con `@source "./"` en `packages/ui/src/tokens.css`, el CSS que importan las tres apps.
 - **`osv-scanner` corta con CUALQUIER vulnerabilidad conocida**, sin umbral de severidad (a diferencia de `pnpm audit --audit-level=high`). El 21/07/26 apareció [GHSA-frvp-7c67-39w9](https://osv.dev/GHSA-frvp-7c67-39w9) en `@hono/node-server` 1.x (path traversal de `serve-static` en hosts Windows: no usamos `serve-static` y la API corre en Linux, impacto real nulo) y volteó el CI de todas las ramas. Se resolvió subiendo a `@hono/node-server@2`: `serve` y `getConnInfo` mantienen la firma — verificado levantando la API contra un Mongo efímero (`/healthz` 200 + login por la ruta rate-limited).
 - **`pnpm audit --prod` puede romperse de un día para el otro** por advisories nuevos en dependencias transitivas de `eslint` (que es dependency real de `@bv/config` porque publica los presets). Se arregla con `overrides` en `pnpm-workspace.yaml` — **acotando la major**: un `>=` puede saltar a una API incompatible (pasó con `brace-expansion`: `minimatch@3` murió con "expand is not a function").
+- **`osv-scanner` volvió a cortar el 24/07/26**, ahora con tres advisories de `react-router` 6.30.4 ([GHSA-337j-9hxr-rhxg](https://osv.dev/GHSA-337j-9hxr-rhxg), [GHSA-wrjc-x8rr-h8h6](https://osv.dev/GHSA-wrjc-x8rr-h8h6), [GHSA-jjmj-jmhj-qwj2](https://osv.dev/GHSA-jjmj-jmhj-qwj2)): cuatro PRs en rojo por una dependencia. **El patrón ya tiene forma**: sale un advisory, se caen todas las ramas a la vez, y la salida barata es un PR de una sola cosa que sale de `main` y se mergea primero. Como CI corre `on: pull_request` (sobre el merge contra `main`), un re-run deja verdes a los demás sin tocarles una línea. En este caso el fix era subir a 7.x —en 6.x no hay— y el único cambio de código fue que `navigate()` ahora devuelve una promesa: 25 llamadas con `void` adelante.
+- **`ReferenceError: window is not defined` como *unhandled error* al final de la suite de un FE**, con todos los tests en verde y la corrida marcada como fallada igual (pasó en el PR #47). Es un `setState` que llega **después** de que vitest desarmó el entorno jsdom: la pantalla se desmontó, pero el `load` que disparó su `useEffect` seguía en vuelo y al resolver entró a `dispatchSetState` de react-dom con el `window` ya borrado. No es un problema de infra: es la falta de guarda de cancelación en el efecto. El mismo agujero pisa datos en producción (cambiar de tab o de ficha y que vuelva la respuesta de la anterior). Arreglado en las **19** cargas por efecto de los tres FEs con el patrón de `AuthContext` (§3); si aparece un `useEffect` nuevo que hace fetch, va con guarda. **Las últimas 5 aparecieron recién al consolidar**: Dashboard, Clases, Configuración, `MemberProgress` y `PrsFeed` no existían en `main`, así que el PR que arregló el resto no podía verlas. En `MemberProgress` la guarda no es solo por el desmontaje —`load` depende del ejercicio elegido, así que cambiar de ejercicio con la request anterior en vuelo dejaba que la vieja pisara el gráfico de la nueva— y tiene su test, que falla si se saca la guarda.
+- **Subir de major no siempre es la salida, y hay que saber cuándo parar.** El mismo día del advisory de `react-router` 6.x apareció otro (`GHSA-qwww-vcr4-c8h2`, **high**) contra la línea 7.x a la que se acababa de migrar. El fix está en react-router **8.3.0**, que exige **React 19**: `react-router-dom` ni siquiera existe en v8, y v8 usa `useOptimistic`. Lo probé —renombrar los 61 imports a `react-router`, instalar 8.3.0— y la suite muere con `The requested module 'react' does not provide an export named 'useOptimistic'`. O sea: apagar ese CI rojo costaba migrar React 18→19 en los tres FEs. **Eso no se hace de apuro.** Se usó el mecanismo de excepción que el propio doc de seguridad ya tenía previsto ([§5](05-seguridad.md)), porque el impacto real es nulo: el bypass es **en modo RSC** y las tres apps son SPAs de Vite con `BrowserRouter`, sin React Server Components ni server actions. Va declarado en los **dos** escáneres (`auditConfig.ignoreGhsas` de pnpm y `osv-scanner.toml`) con razón y fecha: `ignoreUntil` hace que la excepción vuelva a fallar sola el 2026-10-24 si nadie la revisó.
+- **`pnpm audit --prod` y `osv-scanner` NO ven lo mismo, y está bien.** `--prod` mira solo deps de producción; `osv-scanner` escanea el lockfile entero, dev incluido. Por eso `GHSA-r28c-9q8g-f849` en `postcss` (7.5, transitiva de vite) pasó limpio por el primero y lo cortó el segundo. **Corolario práctico**: cuando CI se pone rojo por dependencias, hay que mirar cuál de los dos pasos falló antes de suponer de qué se trata — en un mismo día esta rama se cayó por tres advisories distintos, uno en cada paso y uno en los dos.
 - **`vi.setSystemTime` expira los JWT del setup** (TTL 15 min): en tests con clock fijo hay que emitir un token fresco dentro del clock.
 - **pnpm reenvía el separador `--`** a los scripts; `parseArgs` de Node lo toma como posicional y explota. Filtrarlo antes de parsear.
 - **Commits multilínea**: usar `git commit -F <archivo>`; los here-strings de PowerShell se cuelan como `@` en el mensaje.
 
 ## 5. Cómo retomar
 
-1. **Mergear #43** (§1). Recién ahí `main` refleja todo y PLAN.md queda al día.
+1. **Mergear #44** (§1). Recién ahí `main` refleja todo y PLAN.md queda al día.
 2. Antes de tomar una tarea, leer su spec completa en `docs/tasks/F*.md` — son el contrato (objetivo, casos de prueba, criterios de aceptación).
 3. **Todo endpoint nuevo se registra en `apps/api/src/route-policies.ts`** en el mismo PR, con su factory en `src/test/factories.ts` si recibe un `:id`. Si no, el build falla (por diseño).
 4. Si el módulo introduce datos, extender el seed (`src/seed.ts`) en el mismo PR.
-5. Correr `pnpm turbo lint typecheck test build` + `pnpm audit --prod --audit-level=high` antes de abrir el PR.
+5. Correr `pnpm turbo lint typecheck test build` + `pnpm audit --prod --audit-level=high` **como último paso antes del commit**, no en algún momento anterior. Pasó en F3-10: el pipeline estaba verde, después se tocó un test, y dos `!` que la regla del proyecto prohíbe llegaron a CI. Turbo cachea por contenido, así que re-correrlo cuando ya está todo escrito cuesta segundos si no cambió nada.
 6. **Verificar contra la API real, no solo con tests.** Los tres bugs más caros de esta fase (refresh concurrente, `POST /orgs` sin `membership`, Tailwind sin escanear `@bv/ui`) pasaron los tests y aparecieron recién al abrir la app. Cómo levantar el entorno: §6.
 
 ### Próximas tareas sin bloqueo humano
 
-- **F3-06, F3-09, F3-10, F3-11** — el resto de las secciones del CRM, independientes entre sí. La más grande es F3-06 (Clases: grilla de templates, calendario de sesiones y anotados); la más chica, F3-11 (Configuración).
+- **F3-09, F3-10, F3-11** — lo que queda del CRM, independiente entre sí: evolución de atletas, dashboard con stats y configuración de la org.
 - F4-07 y F3-12 (deploys) están bloqueados por F1-12; F4-08 (E2E) conviene después del deploy.
 
 ### Deuda anotada durante esta fase

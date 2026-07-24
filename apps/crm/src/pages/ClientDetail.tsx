@@ -7,6 +7,7 @@ import {
   ErrorBanner,
   Input,
   Modal,
+  Segmented,
   Select,
   Skeleton,
   Textarea,
@@ -19,6 +20,8 @@ import { useNavigate, useParams } from 'react-router-dom';
 import { api, errorMessage } from '../api/endpoints';
 import { useAuth } from '../auth/AuthContext';
 import { BackLink } from '../components/BackLink';
+import { MemberProgress } from '../components/MemberProgress';
+import { fmtMoney } from '../lib/format';
 import { usePageTitle } from '../lib/usePageTitle';
 
 const STATUS_BADGE: Record<string, { tone: 'ok' | 'accent' | 'neutral' | 'warn' | 'danger'; label: string }> = {
@@ -29,8 +32,6 @@ const STATUS_BADGE: Record<string, { tone: 'ok' | 'accent' | 'neutral' | 'warn' 
   expired: { tone: 'warn', label: 'Vencido' },
   cancelled: { tone: 'danger', label: 'Anulado' },
 };
-
-const money = (amount: number): string => `$${amount.toLocaleString('es-AR')}`;
 
 /** Ficha del cliente (F3-05): datos, packs y acciones. */
 export function ClientDetail() {
@@ -48,26 +49,39 @@ export function ClientDetail() {
   const [cancelReason, setCancelReason] = useState('');
   const [cancelling, setCancelling] = useState(false);
   const [statusChange, setStatusChange] = useState<'active' | 'disabled' | null>(null);
+  const [tab, setTab] = useState<'datos' | 'progreso'>('datos');
   const [savingStatus, setSavingStatus] = useState(false);
 
   usePageTitle(member ? (member.profile.displayName ?? 'Cliente') : 'Cliente');
 
-  const load = useCallback(async (): Promise<void> => {
-    setLoadError(null);
-    try {
-      const [{ member: m }, { items }] = await Promise.all([
-        api.members.get(id),
-        api.members.assignments(id),
-      ]);
-      setMember(m);
-      setAssignments(items);
-    } catch (err) {
-      setLoadError(errorMessage(err));
-    }
-  }, [id]);
+  // `run` llega solo desde el efecto: si se navega a otra ficha antes de que
+  // conteste la API, la respuesta vieja no pisa a la nueva. El botón de
+  // reintento lo llama sin argumento, así que nunca se cancela.
+  const load = useCallback(
+    async (run?: { cancelled: boolean }): Promise<void> => {
+      setLoadError(null);
+      try {
+        const [{ member: m }, { items }] = await Promise.all([
+          api.members.get(id),
+          api.members.assignments(id),
+        ]);
+        if (run?.cancelled) return;
+        setMember(m);
+        setAssignments(items);
+      } catch (err) {
+        if (run?.cancelled) return;
+        setLoadError(errorMessage(err));
+      }
+    },
+    [id],
+  );
 
   useEffect(() => {
-    void load();
+    const run = { cancelled: false }; // propiedad mutable: StrictMode monta dos veces
+    void load(run);
+    return () => {
+      run.cancelled = true;
+    };
   }, [load]);
 
   const changeStatus = async (status: 'active' | 'disabled'): Promise<void> => {
@@ -159,6 +173,19 @@ export function ClientDetail() {
         </div>
       </div>
 
+      <Segmented<'datos' | 'progreso'>
+        options={[
+          { value: 'datos', label: 'Datos y packs' },
+          { value: 'progreso', label: 'Progreso' },
+        ]}
+        value={tab}
+        onChange={setTab}
+      />
+
+      {tab === 'progreso' ? (
+        <MemberProgress memberId={id} />
+      ) : (
+      <>
       <ProfileCard
         member={member}
         onSaved={(updated) => {
@@ -199,7 +226,7 @@ export function ClientDetail() {
                         <p className="font-medium text-ink">{a.snapshot.name}</p>
                         <p className="text-sm text-ink-muted">
                           {a.remaining} de {a.snapshot.classCount} clases ·{' '}
-                          {money(a.payment.amount)} {a.payment.method === 'cash' ? 'efectivo' : a.payment.method}
+                          {fmtMoney(a.payment.amount)} {a.payment.method === 'cash' ? 'efectivo' : a.payment.method}
                         </p>
                       </div>
                       {packBadge && <Badge tone={packBadge.tone}>{packBadge.label}</Badge>}
@@ -246,6 +273,9 @@ export function ClientDetail() {
           </ul>
         )}
       </section>
+
+      </>
+      )}
 
       <AssignPackModal
         open={assignOpen}
@@ -311,7 +341,7 @@ export function ClientDetail() {
         <Button
           variant="ghost"
           onClick={() => {
-            navigate('/clients');
+            void navigate('/clients');
           }}
         >
           Volver a la lista
@@ -441,9 +471,11 @@ function AssignPackModal({
 
   useEffect(() => {
     if (!open) return;
+    const run = { cancelled: false }; // propiedad mutable: StrictMode monta dos veces
     void (async () => {
       try {
         const { items } = await api.packs.list();
+        if (run.cancelled) return;
         const activos = items.filter((p) => p.archivedAt === undefined);
         setPacks(activos);
         const first = activos[0];
@@ -452,9 +484,13 @@ function AssignPackModal({
           setAmount(String(first.price));
         }
       } catch (err) {
+        if (run.cancelled) return;
         setError(errorMessage(err));
       }
     })();
+    return () => {
+      run.cancelled = true;
+    };
   }, [open]);
 
   const selected = packs?.find((p) => p.id === packId);
@@ -518,7 +554,7 @@ function AssignPackModal({
             >
               {packs.map((p) => (
                 <option key={p.id} value={p.id}>
-                  {p.name} — {p.classCount} clases · {p.durationDays} días · {money(p.price)}
+                  {p.name} — {p.classCount} clases · {p.durationDays} días · {fmtMoney(p.price)}
                 </option>
               ))}
             </Select>
@@ -555,7 +591,7 @@ function AssignPackModal({
 
             {selected && (
               <p className="rounded-xl bg-raised px-3 py-2 text-sm text-ink">
-                {selected.classCount} clases · vence el {expiryPreview} · {money(Number(amount) || 0)}{' '}
+                {selected.classCount} clases · vence el {expiryPreview} · {fmtMoney(Number(amount) || 0)}{' '}
                 {method === 'cash' ? 'efectivo' : method}
               </p>
             )}

@@ -30,9 +30,9 @@ export function Join() {
       if (orgId && destinationFor(memberships) === 'home') {
         selectOrg(orgId);
         if (orgName) toast.show(`¡Bienvenido a ${orgName}!`);
-        navigate('/', { replace: true });
+        void navigate('/', { replace: true });
       } else {
-        navigate('/select-org', { replace: true });
+        void navigate('/select-org', { replace: true });
       }
     });
   };

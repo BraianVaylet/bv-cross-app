@@ -5,6 +5,8 @@ import type {
   CreateExerciseBody,
   CreateOrgBody,
   CreatePackBody,
+  AttendeeDto,
+  CreateSessionBody,
   CreateTemplateBody,
   LoginResponseDto,
   MemberDto,
@@ -12,10 +14,16 @@ import type {
   ExerciseDto,
   OrgDto,
   PackDto,
+  SessionDto,
+  PrEntryDto,
+  DashboardDto,
+  ProgressDto,
   TemplateDto,
   UpdateMemberBody,
   UpdateExerciseBody,
   UpdateOrgBody,
+  UpdateSessionBody,
+  UpdateTemplateBody,
   UpdatePackBody,
   UserDto,
 } from '@bv/contracts';
@@ -121,8 +129,52 @@ export const api = {
   },
   templates: {
     list: () => request<{ items: TemplateDto[] }>('/api/v1/templates'),
+    // `overlaps` es advertencia, no error: hay gimnasios con clases en paralelo.
     create: (body: CreateTemplateBody) =>
-      request<{ template: TemplateDto }>('/api/v1/templates', { method: 'POST', body }),
+      request<{ template: TemplateDto; details?: { overlaps: string[] } }>('/api/v1/templates', {
+        method: 'POST',
+        body,
+      }),
+    // RN-05: las futuras sin reservas se regeneran; las que tienen anotados quedan.
+    update: (id: string, body: UpdateTemplateBody) =>
+      request<{
+        template: TemplateDto;
+        regeneratedSessions: number;
+        keptSessions: number;
+        details?: { overlaps: string[] };
+      }>(`/api/v1/templates/${id}`, { method: 'PATCH', body }),
+    remove: (id: string) =>
+      request<{ deletedSessions: number; keptSessions: number }>(`/api/v1/templates/${id}`, {
+        method: 'DELETE',
+      }),
+  },
+  sessions: {
+    list: (from: string, to: string) =>
+      request<{ items: SessionDto[] }>(`/api/v1/sessions?from=${from}&to=${to}`),
+    create: (body: CreateSessionBody) =>
+      request<{ session: SessionDto }>('/api/v1/sessions', { method: 'POST', body }),
+    update: (id: string, body: UpdateSessionBody) =>
+      request<{ session: SessionDto }>(`/api/v1/sessions/${id}`, { method: 'PATCH', body }),
+    cancel: (id: string) =>
+      request<{ session: SessionDto; refundedBookings: number; failedRefunds: number }>(
+        `/api/v1/sessions/${id}/cancel`,
+        { method: 'POST' },
+      ),
+    attendees: (id: string) =>
+      request<{ items: AttendeeDto[] }>(`/api/v1/sessions/${id}/attendees`),
+  },
+  stats: {
+    /** Ejercicios del catálogo sobre los que este cliente ya cargó algo. */
+    memberExercises: (memberId: string) =>
+      request<{ items: ExerciseDto[] }>(`/api/v1/stats/members/${memberId}/exercises`),
+    memberProgress: (memberId: string, exerciseId: string) =>
+      request<{ progress: ProgressDto }>(
+        `/api/v1/stats/members/${memberId}/progress?exerciseId=${exerciseId}`,
+      ),
+    prsFeed: (limit = 20) =>
+      request<{ items: PrEntryDto[] }>(`/api/v1/stats/prs-feed?limit=${String(limit)}`),
+    /** Todo el dashboard en una llamada (F3-10). */
+    dashboard: () => request<{ dashboard: DashboardDto }>('/api/v1/stats/dashboard'),
   },
   packs: {
     list: (includeArchived = false) =>

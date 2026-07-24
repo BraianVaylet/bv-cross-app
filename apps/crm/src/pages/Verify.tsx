@@ -22,13 +22,21 @@ export function Verify() {
       setError('El enlace no tiene token. Abrí el enlace completo del mail.');
       return;
     }
+    const run = { cancelled: false }; // propiedad mutable: StrictMode monta dos veces
     api.auth
       .verifyEmail(token)
-      .then(() => { setState('ok'); })
+      .then(() => {
+        if (run.cancelled) return;
+        setState('ok');
+      })
       .catch((err: unknown) => {
+        if (run.cancelled) return;
         setState('error');
         setError(errorMessage(err));
       });
+    return () => {
+      run.cancelled = true;
+    };
   }, [token]);
 
   if (state === 'verifying') return <FullScreenSpinner />;

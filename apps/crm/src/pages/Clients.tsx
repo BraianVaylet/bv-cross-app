@@ -55,23 +55,35 @@ export function Clients() {
     };
   }, [search]);
 
-  const load = useCallback(async (): Promise<void> => {
-    setLoadError(null);
-    setItems(null);
-    try {
-      const page = await api.members.list({
-        ...(query ? { q: query } : {}),
-        ...(filter !== 'all' ? { status: filter } : {}),
-      });
-      setItems(page.items);
-      setCursor(page.nextCursor);
-    } catch (err) {
-      setLoadError(errorMessage(err));
-    }
-  }, [query, filter]);
+  // `run` llega solo desde el efecto: una carga que quedó vieja (cambió el
+  // filtro o la búsqueda, o se desmontó la pantalla) no pisa lo que hay ahora.
+  // Los botones de reintento lo llaman sin argumento, así que nunca se cancelan.
+  const load = useCallback(
+    async (run?: { cancelled: boolean }): Promise<void> => {
+      setLoadError(null);
+      setItems(null);
+      try {
+        const page = await api.members.list({
+          ...(query ? { q: query } : {}),
+          ...(filter !== 'all' ? { status: filter } : {}),
+        });
+        if (run?.cancelled) return;
+        setItems(page.items);
+        setCursor(page.nextCursor);
+      } catch (err) {
+        if (run?.cancelled) return;
+        setLoadError(errorMessage(err));
+      }
+    },
+    [query, filter],
+  );
 
   useEffect(() => {
-    void load();
+    const run = { cancelled: false }; // propiedad mutable: StrictMode monta dos veces
+    void load(run);
+    return () => {
+      run.cancelled = true;
+    };
   }, [load]);
 
   const loadMore = async (): Promise<void> => {
@@ -177,7 +189,7 @@ export function Clients() {
           rows={items}
           rowKey={(m) => m.id}
           onRowClick={(m) => {
-            navigate(`/clients/${m.id}`);
+            void navigate(`/clients/${m.id}`);
           }}
           hasMore={cursor !== null}
           loadingMore={loadingMore}
@@ -203,7 +215,7 @@ export function Clients() {
         onCreated={(member) => {
           setNewOpen(false);
           toast.show('Cliente cargado.');
-          navigate(`/clients/${member.id}`);
+          void navigate(`/clients/${member.id}`);
         }}
       />
     </div>

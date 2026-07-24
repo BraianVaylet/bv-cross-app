@@ -19,6 +19,18 @@ export interface SessionLike {
 /** Umbral de "casi llena": a partir de acá la ocupación se pinta en `warn`. */
 export const ALMOST_FULL_RATIO = 0.8;
 
+export type OccupancyTone = 'ok' | 'warn' | 'danger';
+
+/**
+ * Color de la ocupación, compartido por la agenda del atleta y el calendario
+ * del CRM (F3-06): llena en `danger`, ≥80% en `warn`, el resto neutro. Un solo
+ * lugar para que las dos apps cuenten lo mismo al dueño y al que reserva.
+ */
+export function occupancyTone(bookedCount: number, capacity: number): OccupancyTone {
+  if (capacity <= 0 || bookedCount >= capacity) return 'danger';
+  return bookedCount / capacity >= ALMOST_FULL_RATIO ? 'warn' : 'ok';
+}
+
 /**
  * Orden de precedencia pensado desde el atleta: primero lo que YA le pasó a él
  * (reservada), después lo que no puede cambiar (cancelada, pasada) y recién al

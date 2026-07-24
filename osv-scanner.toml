@@ -1,0 +1,20 @@
+# Excepciones de osv-scanner (docs/05-seguridad.md §5).
+#
+# Toda entrada acá lleva razón y fecha de revisión, y tiene que coincidir con
+# `auditConfig.ignoreGhsas` de pnpm-workspace.yaml: dos escáneres con criterios
+# distintos sobre el mismo árbol es peor que uno solo, porque el que sobra se
+# empieza a ignorar.
+
+[[IgnoredVulns]]
+id = "GHSA-qwww-vcr4-c8h2"
+ignoreUntil = 2026-10-24
+# Bypass de CSRF **en modo RSC** de react-router 7.x: permite ejecutar una
+# action antes de devolver el 400. Las tres apps son SPAs de Vite con
+# `BrowserRouter` — no hay React Server Components, no hay server actions y no
+# hay nada del lado del router que ejecute código de servidor. Impacto: ninguno.
+#
+# El fix está en react-router 8.3.0, que exige React 19 (`useOptimistic`); las
+# apps están en React 18.3.1. Subir el router arrastra la migración de React en
+# los tres FEs: es un cambio de otro tamaño y no se hace de apuro para apagar un
+# CI rojo. Se borra esta excepción cuando se migre a React 19.
+reason = "SPAs de Vite sin RSC ni server actions: la ruta vulnerable no existe. El parche exige React 19 (ver pnpm-workspace.yaml)."

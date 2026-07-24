@@ -8,6 +8,25 @@ overrides:
   # Acotado a la major 1: minimatch@3 usa la API vieja (default export) y con
   # brace-expansion 2+ rompe con "expand is not a function".
   brace-expansion@<1.1.16: "^1.1.16"
+auditConfig:
+  ignoreGhsas:
+    # audit-exception: GHSA-qwww-vcr4-c8h2 (high) en react-router 7.x.
+    #
+    # Es un bypass de CSRF **en modo RSC**: permite ejecutar una action antes de
+    # devolver el 400. Las tres apps son SPAs de Vite con `BrowserRouter`: no hay
+    # React Server Components, no hay server actions y no hay nada del lado del
+    # router que ejecute código de servidor. Impacto real: ninguno.
+    #
+    # Por qué no se parchea: el fix está en react-router 8.3.0, y react-router 8
+    # exige **React 19** (usa `useOptimistic`). Las apps están en React 18.3.1, así
+    # que subir el router arrastra la migración de React en los tres FEs — un
+    # cambio de otro tamaño, con su propio riesgo, que no se hace de apuro para
+    # apagar un CI rojo.
+    #
+    # Revisar cuando: se migre a React 19 (ahí se sube a react-router 8 y esta
+    # excepción se borra) o, como muy tarde, el 2026-10-24.
+    - GHSA-qwww-vcr4-c8h2
+
 allowBuilds:
   # better-sqlite3: lee la DB v1 en el script de migración F2-08 (prebuilds oficiales)
   better-sqlite3: true

@@ -59,6 +59,7 @@ jobs:
           scan-args: |-
             --format=markdown
             --output=osv-report.md
+            --config=osv-scanner.toml
             --lockfile=pnpm-lock.yaml
 
       - name: Armar el reporte

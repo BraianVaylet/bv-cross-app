@@ -14,13 +14,10 @@ import type {
   ExerciseDto,
   OrgDto,
   PackDto,
-<<<<<<< HEAD
   SessionDto,
-=======
   PrEntryDto,
   DashboardDto,
   ProgressDto,
->>>>>>> origin/feat/f3-09-progress
   TemplateDto,
   UpdateMemberBody,
   UpdateExerciseBody,

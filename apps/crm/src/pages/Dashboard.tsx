@@ -217,7 +217,7 @@ export function Dashboard() {
               <Fila
                 key={s.id}
                 onClick={() => {
-                  navigate('/classes');
+                  void navigate('/classes');
                 }}
                 titulo={`${timeInTz(s.startsAt, timeZone)} · ${s.discipline}`}
                 detalle={lleno ? 'completa' : casi ? 'casi completa' : 'con lugar'}
@@ -233,7 +233,7 @@ export function Dashboard() {
             <Fila
               key={a.assignmentId}
               onClick={() => {
-                navigate(`/clients/${a.membershipId}`);
+                void navigate(`/clients/${a.membershipId}`);
               }}
               titulo={a.memberName}
               detalle={`${a.packName} · ${String(a.remaining)} clases sin usar`}
@@ -248,7 +248,7 @@ export function Dashboard() {
             <Fila
               key={m.membershipId}
               onClick={() => {
-                navigate(`/clients/${m.membershipId}`);
+                void navigate(`/clients/${m.membershipId}`);
               }}
               titulo={m.memberName}
               detalle={m.lastBookingAt ? 'última reserva' : 'sin ninguna reserva'}

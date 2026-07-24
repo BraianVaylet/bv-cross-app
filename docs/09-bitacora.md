@@ -2,22 +2,30 @@
 
 > Registro de **hasta dónde llegó la implementación**, qué decisiones se tomaron sobre la marcha y qué trampas aparecieron. Los docs 00-08 describen el diseño (estable); este describe el avance (cambiante). El estado tarea por tarea vive en [PLAN.md](../PLAN.md).
 >
-> **Última actualización**: 2026-07-22.
+> **Última actualización**: 2026-07-24.
 
 ## 1. Dónde está cada cosa
 
-`main` llega hasta **F3-08**: entró con el PR consolidado **#43** (F3-05 + F3-07 + F3-08).
+`main` llega hasta **F3-08** (PR consolidado #43). Todo lo demás está en **un único PR: #50**, que reemplaza a #44, #45, #46, #47, #48 y #49.
 
-**Queda 1 PR abierto: #44** (F3-06, sección Clases), que sale de `main` limpio.
+| Reemplaza | Qué trae |
+|---|---|
+| #48 | react-router 6→7 — tres advisories publicados el 24/07 |
+| #44 | F3-06, sección Clases: grilla de horarios + calendario de sesiones |
+| #45 | F3-11, configuración de la org + extensión de roles en la API |
+| #46 | F3-09, evolución de atletas: módulo `stats`, `SimpleChart`, feed de PRs |
+| #47 | F3-10, dashboard del CRM + `loadgen` |
+| #49 | F5-06, job semanal de auditoría de dependencias |
 
+Con #50 adentro, `main` queda en **F3 11/12 · F4 6/8 · F5 1/7**. Del CRM solo falta **F3-12** (deploy), bloqueado por F1-12.
 
-
+**Por qué se consolidó otra vez.** Los seis salían de `main` y eran independientes, así que en principio se mergeaban en cualquier orden. Lo que los ató fue el advisory de `react-router`: `osv-scanner` corta con cualquier vulnerabilidad conocida y sin umbral de severidad, así que **cinco de los seis quedaron en rojo por una dependencia, no por su código** — en todos, `osv-scanner` era el único paso que fallaba. El fix vivía en el sexto. Eso convertía "en cualquier orden" en "uno primero y después re-correr los otros cinco a mano", que es exactamente el costo que la regla de consolidar existe para evitar.
 
 ### Por qué se consolida en vez de encadenar
 
 Una pila larga obliga a mergear en orden exacto, borrar cada rama para que GitHub retargetee la siguiente, y aguantar que un advisory nuevo voltee el CI de todas a la vez. Un PR consolidado se revisa igual por commits (la historia individual queda intacta) y entra de una.
 
-> Pasó cuatro veces: #29 reemplazó a #19-#28, #36 a #30-#35, #40 a #37-#39 y #43 a #41-#42. **Regla: no encadenar más de 2 o 3 PRs.** Si una tarea nueva necesita algo que está en un PR sin mergear, conviene pedir el merge antes de arrancar.
+> Pasó cinco veces: #29 reemplazó a #19-#28, #36 a #30-#35, #40 a #37-#39, #43 a #41-#42 y #50 a #44-#49. **Regla: no encadenar más de 2 o 3 PRs.** Si una tarea nueva necesita algo que está en un PR sin mergear, conviene pedir el merge antes de arrancar.
 
 ## 2. Estado por fase
 
@@ -26,29 +34,34 @@ Una pila larga obliga a mergear en orden exacto, borrar cada rama para que GitHu
 | **F0** Fundaciones | 5/6 | F0-06: comprar dominio (decisión humana; solo bloquea F6) |
 | **F1** API core | 11/12 | F1-12: deploy de la API — **necesita Atlas M0 + Railway creados por un humano** |
 | **F2** Migración bv-cross | 7/8 | F2-07: deploy del FE — depende de F1-12 |
-| **F3** CRM | 8/12 | `apps/crm` con onboarding, Clientes, Clases, Packs y Ejercicios operativos. Faltan F3-09..F3-12 |
-| **F3** CRM | 7/12 en `main` (9/12 con #44 y #45) | Faltan F3-09 (evolución de atletas), F3-10 (dashboard + stats) y F3-12 (deploy) |
-| **F3** CRM | 7/12 en `main` (10/12 con #44, #45 y #46) | Falta F3-10 (dashboard + stats de negocio) y F3-12 (deploy, bloqueado por F1-12) |
-| **F3** CRM | 7/12 en `main` (11/12 con #44–#47) | Solo falta F3-12 (deploy, bloqueado por F1-12) |
+| **F3** CRM | 11/12 | `apps/crm` completo: onboarding, Clientes, Clases, Packs, Ejercicios, Evolución, Dashboard y Configuración. Falta F3-12 (deploy, bloqueado por F1-12) |
 | **F4** Reservas | 6/8 | **La app del atleta está completa**: reserva, cancela, cambia de horario y ve su saldo. Falta el deploy (F4-07, depende de F1-12) y los E2E (F4-08) |
-| **F5-F6** | — | No arrancadas |
+| **F5** Stats + hardening | 1/7 | F5-06 (auditoría semanal) adentro. Sin bloqueo humano siguen F5-01/02 (stats de clases y de clientes), F5-03 (Sentry) y F5-05 (performance pass) |
+| **F6** Go-live | — | No arrancada |
 
 ### Lo que está implementado y funcionando
 
 **API (`apps/api`)** — auth completa (registro, verificación por email, login, refresh rotativo con detección de reuso, reset, cambio de password), multi-tenancy por `X-Org-Id`, organizaciones con joinCode, members (CRM), exercises (catálogo + personales), entries (RMs), schedule (templates + sesiones), packs, assignments y el `booking-service` transaccional (reservar, cancelar, cancelar la clase entera). Dos jobs en el scheduler: `expire-packs` y `materialize-sessions`.
 
-**CRM (`apps/crm`, "BV CRM")** — shell con sidebar en escritorio y barra inferior en el teléfono (`AppShell`, nuevo en `@bv/ui`), guard de rol (solo owner/admin; el atleta que entra por error ve una explicación, no un 403) y **onboarding del dueño**: crear el gimnasio, una clase y un pack —los dos últimos salteables— y el código de organización al final con el mensaje de invitación listo para copiar. **Clientes** (F3-05) ya opera: lista con `DataTable` (tabla en escritorio, cards abajo de 768px), búsqueda server-side con debounce, filtros por estado, alta manual y ficha con packs, asignación con el pago registrado, anulación con motivo, baja/reactivación e invitación al portapapeles. **Packs** (F3-07) también: catálogo con la matriz RN-14 comunicada en el formulario (con clientes vigentes, los campos que les cambiarían el trato llegan deshabilitados y con la explicación), archivar/restaurar y el tab de archivados como historial de precios (RN-15). **Ejercicios** (F3-08) cierra el catálogo: CRUD con `TYPE_LOCKED` comunicado antes del error, preview de imagen con aviso si la URL está rota, archivar/restaurar y **carga rápida de los 12 básicos** para que un box nuevo no arranque vacío. **Clases** (F3-06) cierra la gestión de la agenda: grilla semanal de horarios con **duplicar día**, propagación RN-05 avisada antes de guardar, y calendario de sesiones con anotados, cupo editable y cancelación con devolución. El resto son placeholders que dicen en qué tarea llegan (F3-09..F3-11).
+**CRM (`apps/crm`, "BV CRM")** — **completo salvo el deploy.** Shell con sidebar en escritorio y barra inferior en el teléfono (`AppShell`), guard de rol (el atleta que entra por error ve una explicación, no un 403) y **onboarding del dueño**: crear el gimnasio, una clase y un pack —los dos últimos salteables— y el código de organización al final con el mensaje de invitación listo para copiar. Las secciones:
 
+- **Dashboard** (F3-10) — la home: ingresos y altas del mes, reservas de la semana, y tres listas accionables (clases de hoy con su ocupación, packs que vencen, gente sin actividad hace 14+ días). Una sola llamada trae todo.
+- **Clientes** (F3-05) — `DataTable` (tabla en escritorio, cards abajo de 768px), búsqueda server-side con debounce, filtros por estado, alta manual, ficha con packs, asignación con el pago registrado, anulación con motivo, baja/reactivación e invitación al portapapeles.
+- **Clases** (F3-06) — grilla semanal de horarios con **duplicar día**, propagación RN-05 avisada antes de guardar, y calendario de sesiones con anotados, cupo editable y cancelación con devolución.
+- **Packs** (F3-07) — matriz RN-14 comunicada en el formulario (con clientes vigentes, los campos que les cambiarían el trato llegan deshabilitados y con la explicación), archivar/restaurar y el tab de archivados como historial de precios (RN-15).
+- **Ejercicios** (F3-08) — CRUD con `TYPE_LOCKED` comunicado antes del error, preview de imagen con aviso si la URL está rota, archivar/restaurar y **carga rápida de los 12 básicos** para que un box nuevo no arranque vacío.
+- **Evolución** (F3-09) — tab de progreso en la ficha (gráfico con los récords destacados e historial) y feed de récords del gimnasio.
+- **Configuración** (F3-11) — identidad, políticas, código de acceso regenerable y gestión de administradores; las secciones de owner se ocultan al admin.
 
-
+El único placeholder que queda es **Estadísticas**, que llega en F5-01.
 
 **FE de agenda (`apps/schedule`, "BV Agenda")** — PWA propia del atleta: shell con bottom-nav de 4 secciones (Grilla, Mis reservas, Saldo, Cuenta), auth y join heredados de `apps/cross`, SSO por cookie compartida verificado a mano. **La grilla reserva de verdad** (F4-04): semana navegable con el horizonte como límite, cards con los 6 estados, saldo en el header y confirmación que dice de qué pack sale el crédito. **Mis reservas** (F4-05) muestra la ventana de cancelación antes del error ("Podés cancelar hasta las 16:00"), avisa si el crédito vuelve a un pack vencido y permite cambiar de horario (cancelar + volver a la grilla en ese día). **Saldo** (F4-06) separa activos e historial, marca cuál se consume primero y cuál todavía no arrancó.
 
 **FE de cargas (`apps/cross`)** — migrado de v1 al monorepo: auth nueva (token en memoria, refresh single-flight), join a organización, Home con catálogo + personales y búsqueda, detalle con la calculadora de cargas de v1, cuenta, PWA con prompt de actualización.
 
-**Suite de aislamiento multi-tenant** — creció de 39 a **196 tests generados** automáticamente. Cada ruta nueva se registra en `route-policies.ts` y la suite cruza esa tabla contra las rutas reales de Hono: **si agregás un endpoint y no lo registrás, el build falla**.
+**Suite de aislamiento multi-tenant** — creció de 39 a **más de 210 tests generados** automáticamente. Cada ruta nueva se registra en `route-policies.ts` y la suite cruza esa tabla contra las rutas reales de Hono: **si agregás un endpoint y no lo registrás, el build falla**.
 
-**Seed de desarrollo** (`pnpm --filter @bv/api db:seed`) — org demo `bahia-cross-demo` con owner, admin, 4 atletas + 1 pre-carga, grilla lun–sáb materializada 14 días, 2 packs, 4 asignaciones en distintos estados y 7 reservas sobre las 3 próximas clases.
+**Seed de desarrollo** (`pnpm --filter @bv/api db:seed`) — org demo `bahia-cross-demo` con owner, admin, 5 atletas + 1 pre-carga, grilla lun–sáb materializada 14 días, 2 packs, 4 asignaciones en distintos estados, 7 reservas y 20 cargas de RM. **El gimnasio tiene historia a propósito** (F3-10): altas escalonadas de 120 a 5 días, un pack venciendo en 5 días con saldo sin usar y una atleta que se anotó hace 70 días y nunca reservó — sin eso el dashboard abre vacío y no se puede ni mirar.
 
 **Migración v1→v2** (`db:migrate-v1`) — dry-run por defecto, `--commit`, `--rollback`. Ver [scripts/README-migrate.md](../apps/api/scripts/README-migrate.md).
 

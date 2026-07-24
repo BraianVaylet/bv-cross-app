@@ -8,6 +8,11 @@ overrides:
   # Acotado a la major 1: minimatch@3 usa la API vieja (default export) y con
   # brace-expansion 2+ rompe con "expand is not a function".
   brace-expansion@<1.1.16: "^1.1.16"
+  # GHSA-r28c-9q8g-f849 (7.5). Entra como transitiva de vite (y de tailwind y
+  # vitest, que también dependen de vite). Es dev-only, así que `pnpm audit
+  # --prod` no lo ve; lo agarra osv-scanner, que escanea el lockfile entero.
+  # El parche es un patch de la misma minor: no hay motivo para no tomarlo.
+  postcss@<8.5.18: "^8.5.18"
 auditConfig:
   ignoreGhsas:
     # audit-exception: GHSA-qwww-vcr4-c8h2 (high) en react-router 7.x.

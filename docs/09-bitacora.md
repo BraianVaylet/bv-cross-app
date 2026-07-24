@@ -2,7 +2,7 @@
 
 > Registro de **hasta dónde llegó la implementación**, qué decisiones se tomaron sobre la marcha y qué trampas aparecieron. Los docs 00-08 describen el diseño (estable); este describe el avance (cambiante). El estado tarea por tarea vive en [PLAN.md](../PLAN.md).
 >
-> **Última actualización**: 2026-07-22.
+> **Última actualización**: 2026-07-24.
 
 ## 1. Dónde está cada cosa
 
@@ -76,6 +76,8 @@ Las que no estaban en los docs de diseño y se resolvieron al implementar:
 | CRM como PWA | **No** | Se usa desde el mostrador o el teléfono del dueño, siempre con conexión. Un service worker en una app que cambia seguido es un problema de despliegue, no una mejora |
 | Password en la migración v1→v2 | No se migra el hash: se crea una **aleatoria** y el dueño usa "olvidé mi contraseña" | Cambia el esquema de identidad (alias → email) |
 | DST con hora local inexistente | Se usa el resultado determinista de la librería (sesión corrida) | Preferible a dejar un hueco silencioso en la grilla |
+| Cancelar las cargas disparadas por efecto | Guarda `run = { cancelled: false }` **inline**, como en `AuthContext`; **no** un hook `useAsyncEffect` | Los `setState` viven adentro de `load`, y `load` lo comparten el efecto y las acciones del usuario (reintento, refetch después de guardar). Un hook genérico no puede meter la guarda ahí adentro: ahorraría 3 líneas de efecto y obligaría igual a tocar cada `load`. A cambio serían 3 archivos nuevos duplicados en `src/lib` — justo la deuda que F6-05 quiere cerrar |
+| Quién recibe la guarda | La toma `load` como parámetro **opcional**: el efecto la pasa, los handlers no | Un `isMounted` por ref no arregla el pisado de datos (es por request, no por montaje). Con el parámetro opcional, los botones de reintento y los refetch post-mutación siguen andando sin tocarlos |
 
 ## 4. Trampas de infraestructura (que van a volver)
 
@@ -84,6 +86,7 @@ Las que no estaban en los docs de diseño y se resolvieron al implementar:
 - **Tailwind v4 no escanea `node_modules`**, y `@bv/ui` entra por ahí (symlink del workspace): las clases que solo viven en los componentes del design system no se generaban en la app que los consume. Se ve como un componente "roto" sin error de build — lo agarró la verificación en el navegador, no un test. Resuelto con `@source "./"` en `packages/ui/src/tokens.css`, el CSS que importan las tres apps.
 - **`osv-scanner` corta con CUALQUIER vulnerabilidad conocida**, sin umbral de severidad (a diferencia de `pnpm audit --audit-level=high`). El 21/07/26 apareció [GHSA-frvp-7c67-39w9](https://osv.dev/GHSA-frvp-7c67-39w9) en `@hono/node-server` 1.x (path traversal de `serve-static` en hosts Windows: no usamos `serve-static` y la API corre en Linux, impacto real nulo) y volteó el CI de todas las ramas. Se resolvió subiendo a `@hono/node-server@2`: `serve` y `getConnInfo` mantienen la firma — verificado levantando la API contra un Mongo efímero (`/healthz` 200 + login por la ruta rate-limited).
 - **`pnpm audit --prod` puede romperse de un día para el otro** por advisories nuevos en dependencias transitivas de `eslint` (que es dependency real de `@bv/config` porque publica los presets). Se arregla con `overrides` en `pnpm-workspace.yaml` — **acotando la major**: un `>=` puede saltar a una API incompatible (pasó con `brace-expansion`: `minimatch@3` murió con "expand is not a function").
+- **`ReferenceError: window is not defined` como *unhandled error* al final de la suite de un FE**, con todos los tests en verde y la corrida marcada como fallada igual (pasó en el PR #47). Es un `setState` que llega **después** de que vitest desarmó el entorno jsdom: la pantalla se desmontó, pero el `load` que disparó su `useEffect` seguía en vuelo y al resolver entró a `dispatchSetState` de react-dom con el `window` ya borrado. No es un problema de infra: es la falta de guarda de cancelación en el efecto. El mismo agujero pisa datos en producción (cambiar de tab o de ficha y que vuelva la respuesta de la anterior). Arreglado en las 14 cargas por efecto de los tres FEs con el patrón de `AuthContext` (§3); si aparece un `useEffect` nuevo que hace fetch, va con guarda.
 - **`vi.setSystemTime` expira los JWT del setup** (TTL 15 min): en tests con clock fijo hay que emitir un token fresco dentro del clock.
 - **pnpm reenvía el separador `--`** a los scripts; `parseArgs` de Node lo toma como posicional y explota. Filtrarlo antes de parsear.
 - **Commits multilínea**: usar `git commit -F <archivo>`; los here-strings de PowerShell se cuelan como `@` en el mensaje.

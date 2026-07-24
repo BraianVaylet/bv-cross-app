@@ -36,19 +36,28 @@ export function Exercises() {
   const [archiving, setArchiving] = useState(false);
   const [loadingBasics, setLoadingBasics] = useState(false);
 
-  const load = useCallback(async (): Promise<void> => {
+  // `run` llega solo desde el efecto: si la pantalla se desmonta antes de que
+  // conteste la API, la respuesta se descarta. El botón de reintento lo llama
+  // sin argumento, así que nunca se cancela.
+  const load = useCallback(async (run?: { cancelled: boolean }): Promise<void> => {
     setLoadError(null);
     setItems(null);
     try {
       const { items: list } = await api.exercises.list(true);
+      if (run?.cancelled) return;
       setItems(list);
     } catch (err) {
+      if (run?.cancelled) return;
       setLoadError(errorMessage(err));
     }
   }, []);
 
   useEffect(() => {
-    void load();
+    const run = { cancelled: false }; // propiedad mutable: StrictMode monta dos veces
+    void load(run);
+    return () => {
+      run.cancelled = true;
+    };
   }, [load]);
 
   const activos = (items ?? []).filter((e) => e.archivedAt === undefined);

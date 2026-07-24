@@ -65,20 +65,29 @@ export function Home() {
   const [toDelete, setToDelete] = useState<ExerciseDto | null>(null);
   const [deleting, setDeleting] = useState(false);
 
-  const load = () => {
+  // `run` llega solo desde el efecto: al cambiar de gimnasio, la respuesta del
+  // anterior no pisa al nuevo. El refetch de después de borrar lo llama sin
+  // argumento, así que nunca se cancela.
+  const load = (run?: { cancelled: boolean }) => {
     api.exercises
       .list()
       .then((r) => {
+        if (run?.cancelled) return;
         setItems(r.items);
       })
       .catch((err: unknown) => {
+        if (run?.cancelled) return;
         setError(errorMessage(err));
       });
   };
 
   useEffect(() => {
+    const run = { cancelled: false }; // propiedad mutable: StrictMode monta dos veces
     setItems(null);
-    load();
+    load(run);
+    return () => {
+      run.cancelled = true;
+    };
   }, [activeOrgId]);
 
   const groups = useMemo(() => groupExercises(items ?? [], query), [items, query]);

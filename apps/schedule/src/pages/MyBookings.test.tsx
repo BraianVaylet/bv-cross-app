@@ -1,6 +1,6 @@
 import type { BookingWithSessionDto, CreditsDto } from '@bv/contracts';
 import { ToastProvider } from '@bv/ui';
-import { fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { act, fireEvent, render, screen, waitFor } from '@testing-library/react';
 import type * as ReactRouter from 'react-router-dom';
 import { MemoryRouter } from 'react-router-dom';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
@@ -203,5 +203,35 @@ describe('MyBookings — ventana de cancelación (F4-05)', () => {
       expect(screen.queryByRole('button', { name: 'Cargar más' })).toBeNull();
     });
     expect(screen.getAllByText(/crossfit/)).toHaveLength(2);
+  });
+
+  it('cambiar de tab descarta la carga anterior: la respuesta vieja no pisa a la nueva', async () => {
+    // "Próximas" queda colgada y contesta DESPUÉS de que el historial ya pintó.
+    // Sin la guarda de cancelación, esa respuesta vieja repintaba el tab que el
+    // atleta ya había dejado atrás.
+    const upcoming: { resolve?: (page: unknown) => void } = {};
+    bookingsMock.mockImplementation((params: { scope: string }) => {
+      if (params.scope === 'upcoming') {
+        return new Promise((resolve) => {
+          upcoming.resolve = resolve;
+        });
+      }
+      return Promise.resolve({
+        items: [booking({ id: 'b2', status: 'cancelled_by_user' })],
+        nextCursor: null,
+      });
+    });
+
+    renderPage();
+    fireEvent.click(await screen.findByRole('button', { name: 'Historial' }));
+    expect(await screen.findByText('La cancelaste')).toBeTruthy();
+
+    await act(async () => {
+      upcoming.resolve?.({ items: [booking()], nextCursor: null });
+      await Promise.resolve(); // deja correr la cadena de la carga vieja
+    });
+
+    expect(screen.getByText('La cancelaste')).toBeTruthy();
+    expect(screen.queryByText(/Podés cancelar hasta las/)).toBeNull();
   });
 });

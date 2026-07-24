@@ -32,17 +32,27 @@ export function Credits() {
   const [loadError, setLoadError] = useState<string | null>(null);
   const [showHistory, setShowHistory] = useState(false);
 
-  const load = useCallback(async (): Promise<void> => {
+  // `run` llega solo desde el efecto: si la pantalla se desmonta antes de que
+  // conteste la API, la respuesta se descarta. El botón de reintento lo llama
+  // sin argumento, así que nunca se cancela.
+  const load = useCallback(async (run?: { cancelled: boolean }): Promise<void> => {
     setLoadError(null);
     try {
-      setCredits(await api.me.credits());
+      const mine = await api.me.credits();
+      if (run?.cancelled) return;
+      setCredits(mine);
     } catch (err) {
+      if (run?.cancelled) return;
       setLoadError(errorMessage(err));
     }
   }, []);
 
   useEffect(() => {
-    void load();
+    const run = { cancelled: false }; // propiedad mutable: StrictMode monta dos veces
+    void load(run);
+    return () => {
+      run.cancelled = true;
+    };
   }, [load]);
 
   // La API ya devuelve los usables primero (FIFO): acá solo se separan las dos

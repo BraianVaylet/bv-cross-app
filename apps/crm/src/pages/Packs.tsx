@@ -37,19 +37,28 @@ export function Packs() {
   const [toArchive, setToArchive] = useState<PackDto | null>(null);
   const [archiving, setArchiving] = useState(false);
 
-  const load = useCallback(async (): Promise<void> => {
+  // `run` llega solo desde el efecto: si la pantalla se desmonta antes de que
+  // conteste la API, la respuesta se descarta. El botón de reintento lo llama
+  // sin argumento, así que nunca se cancela.
+  const load = useCallback(async (run?: { cancelled: boolean }): Promise<void> => {
     setLoadError(null);
     setPacks(null);
     try {
       const { items } = await api.packs.list(true);
+      if (run?.cancelled) return;
       setPacks(items);
     } catch (err) {
+      if (run?.cancelled) return;
       setLoadError(errorMessage(err));
     }
   }, []);
 
   useEffect(() => {
-    void load();
+    const run = { cancelled: false }; // propiedad mutable: StrictMode monta dos veces
+    void load(run);
+    return () => {
+      run.cancelled = true;
+    };
   }, [load]);
 
   const activos = (packs ?? []).filter((p) => p.archivedAt === undefined);

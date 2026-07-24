@@ -7,6 +7,7 @@
     "dev": "tsx watch src/index.ts",
     "db:seed": "tsx scripts/seed.ts",
     "db:migrate-v1": "tsx scripts/migrate-v1.ts",
+    "loadgen": "tsx scripts/loadgen.ts",
     "build": "tsc -p tsconfig.build.json",
     "start": "node dist/index.js",
     "typecheck": "tsc --noEmit -p tsconfig.json",

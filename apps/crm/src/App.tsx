@@ -6,6 +6,7 @@ import { CrmLayout } from './components/CrmLayout';
 import { ErrorBoundary } from './components/ErrorBoundary';
 import { Account } from './pages/Account';
 import { ClientDetail } from './pages/ClientDetail';
+import { Dashboard } from './pages/Dashboard';
 import { Clients } from './pages/Clients';
 import { Exercises } from './pages/Exercises';
 import { Forgot } from './pages/Forgot';
@@ -43,13 +44,13 @@ export function App() {
 
               <Route element={<AdminRoute />}>
                 <Route element={<CrmLayout />}>
-                  <Route path="/" element={<Placeholder title="Dashboard" task="F3-10" />} />
+                  <Route path="/" element={<Dashboard />} />
                   <Route path="/clients" element={<Clients />} />
                   <Route path="/clients/:id" element={<ClientDetail />} />
                   <Route path="/classes" element={<Placeholder title="Clases" task="F3-06" />} />
                   <Route path="/packs" element={<Packs />} />
                   <Route path="/exercises" element={<Exercises />} />
-                  <Route path="/stats" element={<Placeholder title="Estadísticas" task="F3-10" />} />
+                  <Route path="/stats" element={<Placeholder title="Estadísticas" task="F5-01" />} />
                   <Route
                     path="/settings"
                     element={<Placeholder title="Configuración" task="F3-11" />}

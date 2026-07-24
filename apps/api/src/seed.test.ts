@@ -32,9 +32,9 @@ describe('seed de desarrollo (F1-11)', () => {
     const second = await runSeed('development');
 
     expect(await organizations().countDocuments({ slug: DEMO_ORG_SLUG })).toBe(1);
-    expect(await users().countDocuments({ email: /@demo\.test$/ })).toBe(6);
+    expect(await users().countDocuments({ email: /@demo\.test$/ })).toBe(7);
     const org = await organizations().findOne({ slug: DEMO_ORG_SLUG });
-    expect(await memberships().countDocuments({ orgId: org?._id })).toBe(7);
+    expect(await memberships().countDocuments({ orgId: org?._id })).toBe(8);
     // la segunda corrida recrea la org: id nuevo, datos equivalentes
     expect(second.memberships).toBe(first.memberships);
     expect(second.templates).toBe(first.templates);
@@ -115,6 +115,30 @@ describe('seed de desarrollo (F1-11)', () => {
     expect(docs.every((b) => assignmentIds.includes(b.packAssignmentId.toHexString()))).toBe(true);
   });
 
+  it('el gimnasio tiene historia: altas escalonadas y una alerta viva (F3-10)', async () => {
+    await runSeed('development');
+    const org = await organizations().findOne({ slug: DEMO_ORG_SLUG });
+    const now = Date.now();
+
+    // Sin altas escalonadas el dashboard no muestra nada: todos serían del mes
+    // y nadie llevaría 14 días sin venir.
+    const fichas = await memberships().find({ orgId: org?._id, userId: { $ne: null } }).toArray();
+    const antiguedades = fichas.map((m) => Math.round((now - (m.joinedAt?.getTime() ?? now)) / 86_400_000));
+    expect(Math.min(...antiguedades)).toBeLessThan(31); // alguien del mes
+    expect(Math.max(...antiguedades)).toBeGreaterThan(90); // y alguien viejo
+
+    // Elena no reserva nunca: es el caso "sin actividad" del dashboard.
+    const elena = await users().findOne({ email: 'atleta6@demo.test' });
+    expect(await bookings().countDocuments({ orgId: org?._id, userId: elena?._id })).toBe(0);
+
+    // Y hay un pack activo venciendo dentro de la semana, con saldo sin usar.
+    const porVencer = await packAssignments()
+      .find({ orgId: org?._id, status: 'active', expiresAt: { $lte: new Date(now + 7 * 86_400_000) } })
+      .toArray();
+    expect(porVencer).toHaveLength(1);
+    expect(porVencer[0]!.snapshot.classCount - porVencer[0]!.classesUsed).toBeGreaterThan(0);
+  });
+
   it('el catálogo y las cargas alimentan el progreso y el feed (F3-09)', async () => {
     const res = await runSeed('development');
     const org = await organizations().findOne({ slug: DEMO_ORG_SLUG });
@@ -132,7 +156,7 @@ describe('seed de desarrollo (F1-11)', () => {
     expect(new Set(docs.map((e) => e.date)).size).toBeGreaterThan(3);
   });
 
-  it('login owner@demo.test OK; /me/memberships muestra la org; GET /members lista 7 fichas', async () => {
+  it('login owner@demo.test OK; /me/memberships muestra la org; GET /members lista 8 fichas', async () => {
     await runSeed('development');
 
     const loginRes = await app.request('/api/v1/auth/login', {
@@ -159,7 +183,7 @@ describe('seed de desarrollo (F1-11)', () => {
     const page = (await membersRes.json()) as {
       items: { status: string; adminNotes?: string; profile: { displayName?: string } }[];
     };
-    expect(page.items).toHaveLength(7);
+    expect(page.items).toHaveLength(8);
     const invited = page.items.find((m) => m.status === 'invited');
     expect(invited?.adminNotes).toBe('Lesión de hombro — progresión suave');
   });

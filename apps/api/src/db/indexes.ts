@@ -24,6 +24,7 @@ const INDEXES: Record<string, IndexDescription[]> = {
     { key: { userId: 1 } },
     { key: { orgId: 1, status: 1 } },
     { key: { orgId: 1, invitedEmail: 1 } },
+    { key: { orgId: 1, joinedAt: -1 } }, // altas del mes (dashboard F3-10)
   ],
 
   refreshTokens: [
@@ -59,6 +60,7 @@ const INDEXES: Record<string, IndexDescription[]> = {
     { key: { orgId: 1, userId: 1, status: 1 } },
     { key: { userId: 1, status: 1, expiresAt: 1 } }, // selección FIFO (RN-12)
     { key: { orgId: 1, status: 1, expiresAt: 1 } }, // job de expiración + alertas CRM
+    { key: { orgId: 1, createdAt: -1 } }, // facturado del mes (dashboard F3-10)
   ],
 
   bookings: [
@@ -70,6 +72,15 @@ const INDEXES: Record<string, IndexDescription[]> = {
     },
     { key: { userId: 1, status: 1, bookedAt: -1 } },
     { key: { orgId: 1, sessionId: 1 } },
+    // Dashboard (F3-10): movimiento de la semana y última reserva por miembro.
+    { key: { orgId: 1, bookedAt: -1 } },
+    { key: { orgId: 1, userId: 1, bookedAt: -1 } },
+    // Parcial: solo las canceladas tienen `cancelledAt`, así el índice de la
+    // columna de cancelaciones es una fracción de la colección.
+    {
+      key: { orgId: 1, cancelledAt: -1 },
+      partialFilterExpression: { cancelledAt: { $type: 'date' } },
+    },
   ],
 
   emailTokens: [

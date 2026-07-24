@@ -225,4 +225,5 @@ export const ROUTE_POLICIES: RoutePolicy[] = [
     resource: 'membership',
   },
   { method: 'GET', path: '/api/v1/stats/prs-feed', access: 'admin' },
+  { method: 'GET', path: '/api/v1/stats/dashboard', access: 'admin' },
 ];

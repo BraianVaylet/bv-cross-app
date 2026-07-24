@@ -26,7 +26,7 @@ export function Login() {
     setLoading(true);
     try {
       await login(email, password);
-      navigate(from, { replace: true });
+      void navigate(from, { replace: true });
     } catch (err) {
       if (err instanceof ApiError && err.code === 'EMAIL_NOT_VERIFIED') {
         setNeedsVerification(true);

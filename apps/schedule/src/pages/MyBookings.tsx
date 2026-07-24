@@ -142,7 +142,7 @@ export function MyBookings() {
   };
 
   const afterCancelNavigate = (booking: BookingWithSessionDto): void => {
-    navigate(`/?day=${ymdInTz(booking.session.startsAt, timeZone)}`);
+    void navigate(`/?day=${ymdInTz(booking.session.startsAt, timeZone)}`);
   };
 
   const renderUpcoming = (booking: BookingWithSessionDto) => {
@@ -252,7 +252,7 @@ export function MyBookings() {
                 action: (
                   <Button
                     onClick={() => {
-                      navigate('/');
+                      void navigate('/');
                     }}
                   >
                     Ver la grilla

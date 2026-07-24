@@ -322,7 +322,7 @@ export function Onboarding() {
           <Button
             full
             onClick={() => {
-              navigate('/', { replace: true });
+              void navigate('/', { replace: true });
             }}
           >
             Ir al panel

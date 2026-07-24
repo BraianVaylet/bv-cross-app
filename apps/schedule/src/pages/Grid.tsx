@@ -161,7 +161,7 @@ export function Grid() {
           expiresAt={credits.nextExpiration}
           timeZone={timeZone}
           onClick={() => {
-            navigate('/credits');
+            void navigate('/credits');
           }}
         />
       )}
@@ -279,7 +279,7 @@ export function Grid() {
             full
             onClick={() => {
               setNoCredits(false);
-              navigate('/credits');
+              void navigate('/credits');
             }}
           >
             Ver mi saldo

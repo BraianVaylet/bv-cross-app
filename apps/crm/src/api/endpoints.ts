@@ -14,7 +14,12 @@ import type {
   ExerciseDto,
   OrgDto,
   PackDto,
+<<<<<<< HEAD
   SessionDto,
+=======
+  PrEntryDto,
+  ProgressDto,
+>>>>>>> origin/feat/f3-09-progress
   TemplateDto,
   UpdateMemberBody,
   UpdateExerciseBody,
@@ -159,6 +164,17 @@ export const api = {
       ),
     attendees: (id: string) =>
       request<{ items: AttendeeDto[] }>(`/api/v1/sessions/${id}/attendees`),
+  },
+  stats: {
+    /** Ejercicios del catálogo sobre los que este cliente ya cargó algo. */
+    memberExercises: (memberId: string) =>
+      request<{ items: ExerciseDto[] }>(`/api/v1/stats/members/${memberId}/exercises`),
+    memberProgress: (memberId: string, exerciseId: string) =>
+      request<{ progress: ProgressDto }>(
+        `/api/v1/stats/members/${memberId}/progress?exerciseId=${exerciseId}`,
+      ),
+    prsFeed: (limit = 20) =>
+      request<{ items: PrEntryDto[] }>(`/api/v1/stats/prs-feed?limit=${String(limit)}`),
   },
   packs: {
     list: (includeArchived = false) =>

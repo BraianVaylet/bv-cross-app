@@ -11,6 +11,7 @@
 **Queda 1 PR abierto: #44** (F3-06, sección Clases), que sale de `main` limpio.
 
 
+
 ### Por qué se consolida en vez de encadenar
 
 Una pila larga obliga a mergear en orden exacto, borrar cada rama para que GitHub retargetee la siguiente, y aguantar que un advisory nuevo voltee el CI de todas a la vez. Un PR consolidado se revisa igual por commits (la historia individual queda intacta) y entra de una.
@@ -26,6 +27,7 @@ Una pila larga obliga a mergear en orden exacto, borrar cada rama para que GitHu
 | **F2** Migración bv-cross | 7/8 | F2-07: deploy del FE — depende de F1-12 |
 | **F3** CRM | 8/12 | `apps/crm` con onboarding, Clientes, Clases, Packs y Ejercicios operativos. Faltan F3-09..F3-12 |
 | **F3** CRM | 7/12 en `main` (9/12 con #44 y #45) | Faltan F3-09 (evolución de atletas), F3-10 (dashboard + stats) y F3-12 (deploy) |
+| **F3** CRM | 7/12 en `main` (10/12 con #44, #45 y #46) | Falta F3-10 (dashboard + stats de negocio) y F3-12 (deploy, bloqueado por F1-12) |
 | **F4** Reservas | 6/8 | **La app del atleta está completa**: reserva, cancela, cambia de horario y ve su saldo. Falta el deploy (F4-07, depende de F1-12) y los E2E (F4-08) |
 | **F5-F6** | — | No arrancadas |
 
@@ -34,6 +36,7 @@ Una pila larga obliga a mergear en orden exacto, borrar cada rama para que GitHu
 **API (`apps/api`)** — auth completa (registro, verificación por email, login, refresh rotativo con detección de reuso, reset, cambio de password), multi-tenancy por `X-Org-Id`, organizaciones con joinCode, members (CRM), exercises (catálogo + personales), entries (RMs), schedule (templates + sesiones), packs, assignments y el `booking-service` transaccional (reservar, cancelar, cancelar la clase entera). Dos jobs en el scheduler: `expire-packs` y `materialize-sessions`.
 
 **CRM (`apps/crm`, "BV CRM")** — shell con sidebar en escritorio y barra inferior en el teléfono (`AppShell`, nuevo en `@bv/ui`), guard de rol (solo owner/admin; el atleta que entra por error ve una explicación, no un 403) y **onboarding del dueño**: crear el gimnasio, una clase y un pack —los dos últimos salteables— y el código de organización al final con el mensaje de invitación listo para copiar. **Clientes** (F3-05) ya opera: lista con `DataTable` (tabla en escritorio, cards abajo de 768px), búsqueda server-side con debounce, filtros por estado, alta manual y ficha con packs, asignación con el pago registrado, anulación con motivo, baja/reactivación e invitación al portapapeles. **Packs** (F3-07) también: catálogo con la matriz RN-14 comunicada en el formulario (con clientes vigentes, los campos que les cambiarían el trato llegan deshabilitados y con la explicación), archivar/restaurar y el tab de archivados como historial de precios (RN-15). **Ejercicios** (F3-08) cierra el catálogo: CRUD con `TYPE_LOCKED` comunicado antes del error, preview de imagen con aviso si la URL está rota, archivar/restaurar y **carga rápida de los 12 básicos** para que un box nuevo no arranque vacío. **Clases** (F3-06) cierra la gestión de la agenda: grilla semanal de horarios con **duplicar día**, propagación RN-05 avisada antes de guardar, y calendario de sesiones con anotados, cupo editable y cancelación con devolución. El resto son placeholders que dicen en qué tarea llegan (F3-09..F3-11).
+
 
 
 **FE de agenda (`apps/schedule`, "BV Agenda")** — PWA propia del atleta: shell con bottom-nav de 4 secciones (Grilla, Mis reservas, Saldo, Cuenta), auth y join heredados de `apps/cross`, SSO por cookie compartida verificado a mano. **La grilla reserva de verdad** (F4-04): semana navegable con el horizonte como límite, cards con los 6 estados, saldo en el header y confirmación que dice de qué pack sale el crédito. **Mis reservas** (F4-05) muestra la ventana de cancelación antes del error ("Podés cancelar hasta las 16:00"), avisa si el crédito vuelve a un pack vencido y permite cambiar de horario (cancelar + volver a la grilla en ese día). **Saldo** (F4-06) separa activos e historial, marca cuál se consume primero y cuál todavía no arrancó.
@@ -73,6 +76,9 @@ Las que no estaban en los docs de diseño y se resolvieron al implementar:
 | `formatInOrgTz` de la spec de F3-06 | **No se creó**: se reusa `timeInTz` de `@bv/ui` | Ya existía compartido desde F4-04, con el test del borde 23:30 AR. Duplicarlo en `apps/crm/src/lib` habría dado dos fuentes para la misma regla |
 | Cambio de rol en `PATCH /members/:id` | El guard de ruta sigue siendo `admin`; el chequeo fino (`org:manage-admins`) vive en el servicio | Un admin tiene que poder editar la ficha; lo único vedado es el rol. Partir la ruta en dos habría duplicado el resto de la lógica |
 | `role: 'owner'` por PATCH | **No existe en el contrato**: el enum solo acepta `admin` y `athlete` | Transferir la titularidad es otra operación (con sus confirmaciones); dejarla entrar por acá sería regalarla de un typo |
+| Definición de PR | Función pura `markPrs` en `modules/stats/pr-rule.ts`, no un pipeline de Mongo | Es la regla que van a reusar las stats de F5: escrita una vez, testeada como función pura y aplicada igual en el progreso y en el feed. `$setWindowFields` calcularía el máximo acumulado, pero igual habría que leer el historial completo del par para saber si la última carga fue récord |
+| Igualar una marca | **No** es PR (comparación estricta) | Si contara, el feed se llenaría de repeticiones y dejaría de significar algo |
+| `SimpleChart` | SVG a mano, sin librería de charts | Son series de 5-50 puntos; 100 kB de dependencia para esto no se paga. Los tres bordes que rompen un gráfico casero (1 punto, valores iguales, lista vacía) están testeados contra NaN en el `d` |
 | `hasEntries` en el `exerciseDto` | Solo en el **listado admin del catálogo**, con un `distinct` por lote | El CRM lo necesita para comunicar TYPE_LOCKED; el atleta no, y así no paga esa query. Un count por ejercicio habría sido N+1 |
 | Carga del set básico | Un duplicado **no aborta el lote**: se cuenta y sigue | El dueño que ya cargó tres a mano no tiene que adivinar cuáles faltan |
 | Matriz RN-14 en la UI | Los campos bloqueados llegan `disabled` **con la explicación arriba** | Descubrir la regla con un 409 después de completar el formulario es la peor forma de enterarse. El servidor la sigue aplicando igual |

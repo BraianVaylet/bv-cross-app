@@ -69,7 +69,7 @@
 - [x] **F3-06** 🟡 Opus — Sección Clases: grilla de templates (duplicar día) + calendario de sesiones + anotados
 - [x] **F3-07** 🟢 Sonnet — Sección Packs: matriz RN-14 comunicada en la UI + historial de precios
 - [x] **F3-08** 🟢 Sonnet — Sección Ejercicios: CRUD de catálogo + carga rápida del set básico
-- [ ] **F3-09** 🟡 Opus — Evolución de atletas: gráfico de progreso (`SimpleChart`) + feed de PRs (definición de PR)
+- [x] **F3-09** 🟡 Opus — Evolución de atletas: gráfico de progreso (`SimpleChart`) + feed de PRs (definición de PR)
 - [ ] **F3-10** 🟡 Opus — Módulo `stats` + Dashboard (números verificados a mano, presupuesto p95 con `loadgen`)
 - [x] **F3-11** 🟢 Sonnet — Configuración de la org: settings, joinCode, gestión de admins (+ extensión de roles en API)
 - [ ] **F3-12** 🟢 Sonnet — Deploy del CRM (onboarding real cronometrado < 10 min)

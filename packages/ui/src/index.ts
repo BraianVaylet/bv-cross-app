@@ -37,5 +37,7 @@ export type {
   OccupancyTone,
 } from './components/SessionCard.js';
 export { CreditBadge } from './components/CreditBadge.js';
+export { SimpleChart } from './components/SimpleChart.js';
+export type { SimpleChartProps, ChartPoint } from './components/SimpleChart.js';
 export type { CreditBadgeProps } from './components/CreditBadge.js';
 export * from './lib/agendaTime.js';

@@ -3,6 +3,7 @@ import { createApp } from './app.js';
 import {
   bookings,
   classSessions,
+  rmEntries,
   classTemplates,
   memberships,
   organizations,
@@ -112,6 +113,23 @@ describe('seed de desarrollo (F1-11)', () => {
       a._id.toHexString(),
     );
     expect(docs.every((b) => assignmentIds.includes(b.packAssignmentId.toHexString()))).toBe(true);
+  });
+
+  it('el catálogo y las cargas alimentan el progreso y el feed (F3-09)', async () => {
+    const res = await runSeed('development');
+    const org = await organizations().findOne({ slug: DEMO_ORG_SLUG });
+
+    expect(res.exercises).toBe(4);
+    expect(res.entries).toBeGreaterThan(10);
+
+    const docs = await rmEntries().find({ orgId: org?._id }).toArray();
+    expect(docs).toHaveLength(res.entries);
+    // Toda entry del seed es de catálogo: lleva orgId y el CRM la ve (RN-21).
+    expect(docs.every((e) => e.orgId !== null)).toBe(true);
+    // Cada una tiene exactamente una medida (RN-23).
+    expect(docs.every((e) => (e.kg === undefined) !== (e.reps === undefined))).toBe(true);
+    // Fechas separadas: sin eso el gráfico de progreso no dice nada.
+    expect(new Set(docs.map((e) => e.date)).size).toBeGreaterThan(3);
   });
 
   it('login owner@demo.test OK; /me/memberships muestra la org; GET /members lista 7 fichas', async () => {

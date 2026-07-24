@@ -16,6 +16,7 @@ import {
 import { useCallback, useEffect, useState, type FormEvent } from 'react';
 import { ApiError } from '../api/client';
 import { api, errorMessage } from '../api/endpoints';
+import { PrsFeed } from '../components/PrsFeed';
 import { BASIC_EXERCISES } from '../lib/basicExercises';
 import { usePageTitle } from '../lib/usePageTitle';
 
@@ -133,6 +134,8 @@ export function Exercises() {
           Nuevo ejercicio
         </Button>
       </div>
+
+      <PrsFeed limit={8} />
 
       <Segmented<Tab>
         options={[

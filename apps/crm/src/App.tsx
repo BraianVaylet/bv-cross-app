@@ -5,6 +5,7 @@ import { AdminRoute, AuthedRoute, PublicOnlyRoute } from './auth/guards';
 import { CrmLayout } from './components/CrmLayout';
 import { ErrorBoundary } from './components/ErrorBoundary';
 import { Account } from './pages/Account';
+import { Classes } from './pages/Classes';
 import { ClientDetail } from './pages/ClientDetail';
 import { Clients } from './pages/Clients';
 import { Exercises } from './pages/Exercises';
@@ -46,7 +47,7 @@ export function App() {
                   <Route path="/" element={<Placeholder title="Dashboard" task="F3-10" />} />
                   <Route path="/clients" element={<Clients />} />
                   <Route path="/clients/:id" element={<ClientDetail />} />
-                  <Route path="/classes" element={<Placeholder title="Clases" task="F3-06" />} />
+                  <Route path="/classes" element={<Classes />} />
                   <Route path="/packs" element={<Packs />} />
                   <Route path="/exercises" element={<Exercises />} />
                   <Route path="/stats" element={<Placeholder title="Estadísticas" task="F3-10" />} />

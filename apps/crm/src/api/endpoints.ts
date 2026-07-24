@@ -18,6 +18,7 @@ import type {
   SessionDto,
 =======
   PrEntryDto,
+  DashboardDto,
   ProgressDto,
 >>>>>>> origin/feat/f3-09-progress
   TemplateDto,
@@ -175,6 +176,8 @@ export const api = {
       ),
     prsFeed: (limit = 20) =>
       request<{ items: PrEntryDto[] }>(`/api/v1/stats/prs-feed?limit=${String(limit)}`),
+    /** Todo el dashboard en una llamada (F3-10). */
+    dashboard: () => request<{ dashboard: DashboardDto }>('/api/v1/stats/dashboard'),
   },
   packs: {
     list: (includeArchived = false) =>

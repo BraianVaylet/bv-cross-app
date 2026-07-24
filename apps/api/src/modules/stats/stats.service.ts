@@ -1,23 +1,47 @@
-import type { ExerciseDto, PrEntryDto, ProgressDto } from '@bv/contracts';
+import type { DashboardDto, ExerciseDto, PrEntryDto, ProgressDto } from '@bv/contracts';
 import { ObjectId } from 'mongodb';
 import type { AppVariables } from '../../app.js';
 import type { RmEntryDoc } from '../../db/types.js';
 import { DomainError } from '../../lib/errors.js';
+import {
+  addDaysYmd,
+  daysBetweenYmd,
+  monthRangeInTz,
+  todayInTz,
+  utcBounds,
+  weekRangeInTz,
+} from '../../lib/schedule-time.js';
 import { markPrs, measureOf } from './pr-rule.js';
 import {
+  countNewMembers,
+  countWeekActivity,
   exercisesWithDataFor,
   findCatalogExercise,
+  listExpiringAssignments,
   listHistoryForPairs,
+  listInactiveMembers,
   listMemberProgress,
   listRecentEntriesWithExercise,
+  listSessionsBetween,
   findMembership,
   namesOf,
+  orgTimezone,
+  sumRevenueBetween,
 } from './stats.repo.js';
 
 type OrgContext = AppVariables['org'];
 
 /** Cuántas entries se examinan para armar el feed (ver `stats.repo.ts`). */
 const FEED_SCAN_FACTOR = 10;
+
+/** Ventana de la alerta de vencimiento: "esta semana" en criollo. */
+const EXPIRING_DAYS = 7;
+
+/** Sin reservar hace tanto = se está por ir. */
+const INACTIVE_DAYS = 14;
+
+/** Las listas del dashboard son para actuar, no para auditar: se cortan. */
+const LIST_LIMIT = 20;
 
 const pairKey = (userId: ObjectId, exerciseId: ObjectId): string =>
   `${userId.toHexString()}:${exerciseId.toHexString()}`;
@@ -159,4 +183,74 @@ export async function prsFeed(org: OrgContext, limit: number): Promise<PrEntryDt
     improvement: prs.get(row._id.toHexString())?.improvement ?? null,
     date: row.date,
   }));
+}
+
+/**
+ * Dashboard del CRM (F3-10): las seis preguntas del día en una sola llamada.
+ *
+ * Va todo junto porque el dueño las mira juntas: seis requests para pintar una
+ * pantalla es seis veces el round-trip y seis oportunidades de que la pantalla
+ * se arme a pedazos. Adentro son seis pipelines independientes con
+ * `Promise.all`, así que el costo es el del bloque más lento, no la suma.
+ *
+ * **Todas las ventanas se cortan en la tz de la org, nunca en UTC ni en la del
+ * navegador** (docs/02-arquitectura.md §7): una asignación creada el 01/07 a
+ * las 00:30 en Buenos Aires es 30/06 en UTC, y tiene que contar en julio.
+ */
+export async function dashboard(org: OrgContext, now: Date = new Date()): Promise<DashboardDto> {
+  const orgId = new ObjectId(org.orgId);
+
+  const doc = await orgTimezone(orgId);
+  if (!doc) throw new DomainError('NOT_FOUND', 'La organización no existe.');
+  const tz = doc.timezone;
+
+  const hoy = todayInTz(tz, now);
+  const dia = utcBounds(hoy, hoy, tz);
+  const semana = weekRangeInTz(tz, now);
+  const semanaUtc = utcBounds(semana.from, semana.to, tz);
+  const mes = monthRangeInTz(tz, now);
+  const mesUtc = utcBounds(mes.from, mes.to, tz);
+  // Desde ahora (un pack que vence hoy sigue sirviendo hoy) hasta el fin del
+  // séptimo día, completo: si vence el domingo, aparece todo el domingo.
+  const vencimiento = utcBounds(hoy, addDaysYmd(hoy, EXPIRING_DAYS), tz);
+  const corteInactividad = utcBounds(addDaysYmd(hoy, -INACTIVE_DAYS), hoy, tz).start;
+
+  const [sesiones, actividad, porVencer, inactivos, facturado, altas] = await Promise.all([
+    listSessionsBetween(orgId, dia.start, dia.end),
+    countWeekActivity(orgId, semanaUtc.start, semanaUtc.end),
+    listExpiringAssignments(orgId, now, vencimiento.end),
+    listInactiveMembers(orgId, corteInactividad, LIST_LIMIT),
+    sumRevenueBetween(orgId, mesUtc.start, mesUtc.end),
+    countNewMembers(orgId, mesUtc.start, mesUtc.end),
+  ]);
+
+  return {
+    today: {
+      date: hoy,
+      sessions: sesiones.map((s) => ({
+        id: s._id.toHexString(),
+        startsAt: s.startsAt.toISOString(),
+        discipline: s.discipline,
+        bookedCount: s.bookedCount,
+        capacity: s.capacity,
+      })),
+    },
+    week: { ...semana, ...actividad },
+    expiringAssignments: porVencer.slice(0, LIST_LIMIT).map((a) => ({
+      assignmentId: a._id.toHexString(),
+      membershipId: a.membershipId.toHexString(),
+      memberName: a.memberName,
+      packName: a.snapshot.name,
+      expiresAt: a.expiresAt.toISOString(),
+      daysLeft: daysBetweenYmd(hoy, todayInTz(tz, a.expiresAt)),
+      remaining: a.snapshot.classCount - a.classesUsed,
+    })),
+    inactiveMembers: inactivos.map((m) => ({
+      membershipId: m._id.toHexString(),
+      memberName: m.memberName,
+      lastBookingAt: m.lastBookingAt ? m.lastBookingAt.toISOString() : null,
+      daysInactive: daysBetweenYmd(todayInTz(tz, m.lastBookingAt ?? m.since), hoy),
+    })),
+    month: { ...mes, revenue: facturado, newMembers: altas },
+  };
 }

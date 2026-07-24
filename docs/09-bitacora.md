@@ -6,9 +6,10 @@
 
 ## 1. Dónde está cada cosa
 
-`main` llega hasta **F3-08**: entró con el PR consolidado **#43** (F3-05 + F3-07 + F3-08), que reemplazó a #41-#42.
+`main` llega hasta **F3-08**: entró con el PR consolidado **#43** (F3-05 + F3-07 + F3-08).
 
 **Queda 1 PR abierto: #44** (F3-06, sección Clases), que sale de `main` limpio.
+
 
 
 
@@ -28,6 +29,7 @@ Una pila larga obliga a mergear en orden exacto, borrar cada rama para que GitHu
 | **F3** CRM | 8/12 | `apps/crm` con onboarding, Clientes, Clases, Packs y Ejercicios operativos. Faltan F3-09..F3-12 |
 | **F3** CRM | 7/12 en `main` (9/12 con #44 y #45) | Faltan F3-09 (evolución de atletas), F3-10 (dashboard + stats) y F3-12 (deploy) |
 | **F3** CRM | 7/12 en `main` (10/12 con #44, #45 y #46) | Falta F3-10 (dashboard + stats de negocio) y F3-12 (deploy, bloqueado por F1-12) |
+| **F3** CRM | 7/12 en `main` (11/12 con #44–#47) | Solo falta F3-12 (deploy, bloqueado por F1-12) |
 | **F4** Reservas | 6/8 | **La app del atleta está completa**: reserva, cancela, cambia de horario y ve su saldo. Falta el deploy (F4-07, depende de F1-12) y los E2E (F4-08) |
 | **F5-F6** | — | No arrancadas |
 
@@ -36,6 +38,7 @@ Una pila larga obliga a mergear en orden exacto, borrar cada rama para que GitHu
 **API (`apps/api`)** — auth completa (registro, verificación por email, login, refresh rotativo con detección de reuso, reset, cambio de password), multi-tenancy por `X-Org-Id`, organizaciones con joinCode, members (CRM), exercises (catálogo + personales), entries (RMs), schedule (templates + sesiones), packs, assignments y el `booking-service` transaccional (reservar, cancelar, cancelar la clase entera). Dos jobs en el scheduler: `expire-packs` y `materialize-sessions`.
 
 **CRM (`apps/crm`, "BV CRM")** — shell con sidebar en escritorio y barra inferior en el teléfono (`AppShell`, nuevo en `@bv/ui`), guard de rol (solo owner/admin; el atleta que entra por error ve una explicación, no un 403) y **onboarding del dueño**: crear el gimnasio, una clase y un pack —los dos últimos salteables— y el código de organización al final con el mensaje de invitación listo para copiar. **Clientes** (F3-05) ya opera: lista con `DataTable` (tabla en escritorio, cards abajo de 768px), búsqueda server-side con debounce, filtros por estado, alta manual y ficha con packs, asignación con el pago registrado, anulación con motivo, baja/reactivación e invitación al portapapeles. **Packs** (F3-07) también: catálogo con la matriz RN-14 comunicada en el formulario (con clientes vigentes, los campos que les cambiarían el trato llegan deshabilitados y con la explicación), archivar/restaurar y el tab de archivados como historial de precios (RN-15). **Ejercicios** (F3-08) cierra el catálogo: CRUD con `TYPE_LOCKED` comunicado antes del error, preview de imagen con aviso si la URL está rota, archivar/restaurar y **carga rápida de los 12 básicos** para que un box nuevo no arranque vacío. **Clases** (F3-06) cierra la gestión de la agenda: grilla semanal de horarios con **duplicar día**, propagación RN-05 avisada antes de guardar, y calendario de sesiones con anotados, cupo editable y cancelación con devolución. El resto son placeholders que dicen en qué tarea llegan (F3-09..F3-11).
+
 
 
 
@@ -76,6 +79,8 @@ Las que no estaban en los docs de diseño y se resolvieron al implementar:
 | `formatInOrgTz` de la spec de F3-06 | **No se creó**: se reusa `timeInTz` de `@bv/ui` | Ya existía compartido desde F4-04, con el test del borde 23:30 AR. Duplicarlo en `apps/crm/src/lib` habría dado dos fuentes para la misma regla |
 | Cambio de rol en `PATCH /members/:id` | El guard de ruta sigue siendo `admin`; el chequeo fino (`org:manage-admins`) vive en el servicio | Un admin tiene que poder editar la ficha; lo único vedado es el rol. Partir la ruta en dos habría duplicado el resto de la lógica |
 | `role: 'owner'` por PATCH | **No existe en el contrato**: el enum solo acepta `admin` y `athlete` | Transferir la titularidad es otra operación (con sus confirmaciones); dejarla entrar por acá sería regalarla de un typo |
+| Costo del dashboard | Seis pipelines con `Promise.all` en caliente, sin colección de snapshots | El disparador para pre-agregar está escrito ([Escalabilidad §2](07-escalabilidad.md)): p95 > 500 ms. Medido con 100 gimnasios sintéticos (977.500 documentos) da **p95 65 ms**, un orden de magnitud abajo. Un snapshot resuelve un problema que todavía no existe y crea uno que sí: quedar desfasado |
+| Escala del presupuesto | Por env (`LOADGEN_ORGS`), no un script aparte | El test de CI y la medición de ×100 son el MISMO test con otros números. Un procedimiento manual documentado aparte no lo vuelve a correr nadie |
 | Definición de PR | Función pura `markPrs` en `modules/stats/pr-rule.ts`, no un pipeline de Mongo | Es la regla que van a reusar las stats de F5: escrita una vez, testeada como función pura y aplicada igual en el progreso y en el feed. `$setWindowFields` calcularía el máximo acumulado, pero igual habría que leer el historial completo del par para saber si la última carga fue récord |
 | Igualar una marca | **No** es PR (comparación estricta) | Si contara, el feed se llenaría de repeticiones y dejaría de significar algo |
 | `SimpleChart` | SVG a mano, sin librería de charts | Son series de 5-50 puntos; 100 kB de dependencia para esto no se paga. Los tres bordes que rompen un gráfico casero (1 punto, valores iguales, lista vacía) están testeados contra NaN en el `d` |
@@ -94,6 +99,8 @@ Las que no estaban en los docs de diseño y se resolvieron al implementar:
 - **Tailwind v4 no escanea `node_modules`**, y `@bv/ui` entra por ahí (symlink del workspace): las clases que solo viven en los componentes del design system no se generaban en la app que los consume. Se ve como un componente "roto" sin error de build — lo agarró la verificación en el navegador, no un test. Resuelto con `@source "./"` en `packages/ui/src/tokens.css`, el CSS que importan las tres apps.
 - **`osv-scanner` corta con CUALQUIER vulnerabilidad conocida**, sin umbral de severidad (a diferencia de `pnpm audit --audit-level=high`). El 21/07/26 apareció [GHSA-frvp-7c67-39w9](https://osv.dev/GHSA-frvp-7c67-39w9) en `@hono/node-server` 1.x (path traversal de `serve-static` en hosts Windows: no usamos `serve-static` y la API corre en Linux, impacto real nulo) y volteó el CI de todas las ramas. Se resolvió subiendo a `@hono/node-server@2`: `serve` y `getConnInfo` mantienen la firma — verificado levantando la API contra un Mongo efímero (`/healthz` 200 + login por la ruta rate-limited).
 - **`pnpm audit --prod` puede romperse de un día para el otro** por advisories nuevos en dependencias transitivas de `eslint` (que es dependency real de `@bv/config` porque publica los presets). Se arregla con `overrides` en `pnpm-workspace.yaml` — **acotando la major**: un `>=` puede saltar a una API incompatible (pasó con `brace-expansion`: `minimatch@3` murió con "expand is not a function").
+- **`osv-scanner` volvió a cortar el 24/07/26**, ahora con tres advisories de `react-router` 6.30.4 ([GHSA-337j-9hxr-rhxg](https://osv.dev/GHSA-337j-9hxr-rhxg), [GHSA-wrjc-x8rr-h8h6](https://osv.dev/GHSA-wrjc-x8rr-h8h6), [GHSA-jjmj-jmhj-qwj2](https://osv.dev/GHSA-jjmj-jmhj-qwj2)): cuatro PRs en rojo por una dependencia. **El patrón ya tiene forma**: sale un advisory, se caen todas las ramas a la vez, y la salida barata es un PR de una sola cosa que sale de `main` y se mergea primero. Como CI corre `on: pull_request` (sobre el merge contra `main`), un re-run deja verdes a los demás sin tocarles una línea. En este caso el fix era subir a 7.x —en 6.x no hay— y el único cambio de código fue que `navigate()` ahora devuelve una promesa: 25 llamadas con `void` adelante.
+- **Flake de CI: `ReferenceError: window is not defined` en react-dom.** Aparece como *unhandled error* al final de la suite de un FE, con **los 50 tests en verde** — vitest igual marca la corrida como fallada. No reproduce local (3 corridas seguidas limpias); sale en CI, que es más lento. Causa: las pantallas cargan con `useEffect(() => { void load(); })` y `load` hace `setState` cuando resuelve. Si el test no espera esa promesa, la resolución cae **después del teardown del archivo**, cuando jsdom ya destruyó `window`, y react-dom explota adentro de `dispatchSetState`. El patrón correcto ya está escrito en `AuthContext` de las tres apps: un `run = { cancelled: false }` que el cleanup del efecto da vuelta y que se chequea antes de cada `setState`. Falta replicarlo en los ~10 `load` de pantalla (crm: Clients, ClientDetail, Packs, Exercises, Dashboard, MemberProgress · schedule: Grid, MyBookings, Credits · cross: EditExercise). **No es cosmético**: el mismo `setState` tardío puede pisar datos de una pantalla que el usuario ya cambió. Mientras tanto, si CI se cae con esto y los tests están todos en verde, es este flake y basta re-correr.
 - **`vi.setSystemTime` expira los JWT del setup** (TTL 15 min): en tests con clock fijo hay que emitir un token fresco dentro del clock.
 - **pnpm reenvía el separador `--`** a los scripts; `parseArgs` de Node lo toma como posicional y explota. Filtrarlo antes de parsear.
 - **Commits multilínea**: usar `git commit -F <archivo>`; los here-strings de PowerShell se cuelan como `@` en el mensaje.
@@ -104,7 +111,7 @@ Las que no estaban en los docs de diseño y se resolvieron al implementar:
 2. Antes de tomar una tarea, leer su spec completa en `docs/tasks/F*.md` — son el contrato (objetivo, casos de prueba, criterios de aceptación).
 3. **Todo endpoint nuevo se registra en `apps/api/src/route-policies.ts`** en el mismo PR, con su factory en `src/test/factories.ts` si recibe un `:id`. Si no, el build falla (por diseño).
 4. Si el módulo introduce datos, extender el seed (`src/seed.ts`) en el mismo PR.
-5. Correr `pnpm turbo lint typecheck test build` + `pnpm audit --prod --audit-level=high` antes de abrir el PR.
+5. Correr `pnpm turbo lint typecheck test build` + `pnpm audit --prod --audit-level=high` **como último paso antes del commit**, no en algún momento anterior. Pasó en F3-10: el pipeline estaba verde, después se tocó un test, y dos `!` que la regla del proyecto prohíbe llegaron a CI. Turbo cachea por contenido, así que re-correrlo cuando ya está todo escrito cuesta segundos si no cambió nada.
 6. **Verificar contra la API real, no solo con tests.** Los tres bugs más caros de esta fase (refresh concurrente, `POST /orgs` sin `membership`, Tailwind sin escanear `@bv/ui`) pasaron los tests y aparecieron recién al abrir la app. Cómo levantar el entorno: §6.
 
 ### Próximas tareas sin bloqueo humano

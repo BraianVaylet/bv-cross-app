@@ -60,6 +60,88 @@ export const prEntryDto = z
   })
   .strict();
 
+/**
+ * Dashboard del CRM (F3-10): una sola llamada con todo lo que se mira al abrir
+ * el día. Cada bloque responde una pregunta concreta del dueño del box, y por
+ * eso viajan juntos: son seis preguntas que se hacen al mismo tiempo.
+ */
+
+/** Una clase de hoy, para la lista de ocupación. */
+export const dashboardSessionDto = z
+  .object({
+    id: objectIdString,
+    startsAt: z.string(), // ISO UTC — el FE lo muestra en la tz de la org
+    discipline: z.string(),
+    bookedCount: z.number(),
+    capacity: z.number(),
+  })
+  .strict();
+
+/** Una asignación por vencer: a quién avisarle y cuánto le queda sin usar. */
+export const dashboardExpiringDto = z
+  .object({
+    assignmentId: objectIdString,
+    membershipId: objectIdString,
+    memberName: z.string(),
+    packName: z.string(),
+    expiresAt: z.string(), // ISO
+    /** Días de calendario hasta el vencimiento, en la tz de la org. 0 = hoy. */
+    daysLeft: z.number(),
+    remaining: z.number(),
+  })
+  .strict();
+
+/** Alguien que dejó de venir. Es la lista para levantar el teléfono. */
+export const dashboardInactiveDto = z
+  .object({
+    membershipId: objectIdString,
+    memberName: z.string(),
+    /** `null` = nunca reservó desde que se dio de alta. */
+    lastBookingAt: z.string().nullable(),
+    /** Días desde la última reserva; si nunca reservó, desde el alta. */
+    daysInactive: z.number(),
+  })
+  .strict();
+
+export const dashboardDto = z
+  .object({
+    /** Fecha de hoy en la tz de la org: el FE la muestra sin recalcular. */
+    today: z
+      .object({
+        date: calendarDate,
+        sessions: z.array(dashboardSessionDto),
+      })
+      .strict(),
+    /** Semana en curso (lunes a domingo, tz de la org). */
+    week: z
+      .object({
+        from: calendarDate,
+        to: calendarDate,
+        bookings: z.number(),
+        cancellations: z.number(),
+      })
+      .strict(),
+    expiringAssignments: z.array(dashboardExpiringDto),
+    inactiveMembers: z.array(dashboardInactiveDto),
+    /** Mes calendario en curso, en la tz de la org. */
+    month: z
+      .object({
+        from: calendarDate,
+        to: calendarDate,
+        /** Suma de `payment.amount` de las asignaciones creadas en el mes. */
+        revenue: z.number(),
+        /** Membresías activadas en el mes (`joinedAt`). */
+        newMembers: z.number(),
+      })
+      .strict(),
+  })
+  .strict();
+
+export type DashboardSessionDto = z.infer<typeof dashboardSessionDto>;
+export type DashboardExpiringDto = z.infer<typeof dashboardExpiringDto>;
+export type DashboardInactiveDto = z.infer<typeof dashboardInactiveDto>;
+export type DashboardDto = z.infer<typeof dashboardDto>;
+
 export type ProgressQuery = z.infer<typeof progressQuery>;
 export type ProgressPointDto = z.infer<typeof progressPointDto>;
 export type ProgressDto = z.infer<typeof progressDto>;

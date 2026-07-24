@@ -7,6 +7,7 @@ import {
   ErrorBanner,
   Input,
   Modal,
+  Segmented,
   Select,
   Skeleton,
   Textarea,
@@ -19,6 +20,7 @@ import { useNavigate, useParams } from 'react-router-dom';
 import { api, errorMessage } from '../api/endpoints';
 import { useAuth } from '../auth/AuthContext';
 import { BackLink } from '../components/BackLink';
+import { MemberProgress } from '../components/MemberProgress';
 import { usePageTitle } from '../lib/usePageTitle';
 
 const STATUS_BADGE: Record<string, { tone: 'ok' | 'accent' | 'neutral' | 'warn' | 'danger'; label: string }> = {
@@ -48,6 +50,7 @@ export function ClientDetail() {
   const [cancelReason, setCancelReason] = useState('');
   const [cancelling, setCancelling] = useState(false);
   const [statusChange, setStatusChange] = useState<'active' | 'disabled' | null>(null);
+  const [tab, setTab] = useState<'datos' | 'progreso'>('datos');
   const [savingStatus, setSavingStatus] = useState(false);
 
   usePageTitle(member ? (member.profile.displayName ?? 'Cliente') : 'Cliente');
@@ -159,6 +162,19 @@ export function ClientDetail() {
         </div>
       </div>
 
+      <Segmented<'datos' | 'progreso'>
+        options={[
+          { value: 'datos', label: 'Datos y packs' },
+          { value: 'progreso', label: 'Progreso' },
+        ]}
+        value={tab}
+        onChange={setTab}
+      />
+
+      {tab === 'progreso' ? (
+        <MemberProgress memberId={id} />
+      ) : (
+      <>
       <ProfileCard
         member={member}
         onSaved={(updated) => {
@@ -246,6 +262,9 @@ export function ClientDetail() {
           </ul>
         )}
       </section>
+
+      </>
+      )}
 
       <AssignPackModal
         open={assignOpen}

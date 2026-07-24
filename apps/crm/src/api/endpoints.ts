@@ -12,6 +12,8 @@ import type {
   ExerciseDto,
   OrgDto,
   PackDto,
+  PrEntryDto,
+  ProgressDto,
   TemplateDto,
   UpdateMemberBody,
   UpdateExerciseBody,
@@ -123,6 +125,17 @@ export const api = {
     list: () => request<{ items: TemplateDto[] }>('/api/v1/templates'),
     create: (body: CreateTemplateBody) =>
       request<{ template: TemplateDto }>('/api/v1/templates', { method: 'POST', body }),
+  },
+  stats: {
+    /** Ejercicios del catálogo sobre los que este cliente ya cargó algo. */
+    memberExercises: (memberId: string) =>
+      request<{ items: ExerciseDto[] }>(`/api/v1/stats/members/${memberId}/exercises`),
+    memberProgress: (memberId: string, exerciseId: string) =>
+      request<{ progress: ProgressDto }>(
+        `/api/v1/stats/members/${memberId}/progress?exerciseId=${exerciseId}`,
+      ),
+    prsFeed: (limit = 20) =>
+      request<{ items: PrEntryDto[] }>(`/api/v1/stats/prs-feed?limit=${String(limit)}`),
   },
   packs: {
     list: (includeArchived = false) =>

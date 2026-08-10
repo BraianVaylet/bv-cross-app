@@ -49,7 +49,7 @@ jobs:
       - run: pnpm audit --prod --audit-level=high
 
       - name: osv-scanner
-        uses: google/osv-scanner-action/osv-scanner-action@v2.3.8
+        uses: google/osv-scanner-action/osv-scanner-action@v2.5.0
         with:
           scan-args: |-
             --config=osv-scanner.toml
